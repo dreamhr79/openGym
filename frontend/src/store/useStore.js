@@ -20,6 +20,7 @@ import { loadRemote, chooseLocal, forgetRemote, connect, normalizeServerUrl, ren
 import { loadCoachDevice, saveCoachDevice, coachDeviceSettings } from '../lib/coach-device.js'
 import { RTL_LANGS } from '../lib/i18n-core.js'
 import { DEFAULT_TEMPLATE_ID } from '../lib/structuralBalanceTemplates.js'
+import { migrateLegacyHevyCustoms } from '../lib/import-hevy.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
 
@@ -210,6 +211,10 @@ function loadState() {
       const saved = JSON.parse(raw)
       const s = Object.assign(clone(DEF), saved)
       if (!saved.lang) s.lang = detectedLang()
+      // Older Hevy API imports already used stable "im…" custom ids. Tag those rows in place so
+      // the Library can manage their media without changing ids referenced by workouts/routines.
+      // Persistence happens on the next normal state write; loading itself stays side-effect free.
+      migrateLegacyHevyCustoms(s)
       return s
     }
   } catch (e) { /* ignore */ }
