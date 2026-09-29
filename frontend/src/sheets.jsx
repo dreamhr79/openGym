@@ -1106,6 +1106,7 @@ function ExercisePicker({ onPick, title, close }) {
   const chosenCount = Object.keys(usage).length
   const favCount = (st.favEx || []).length
   const customCount = (st.customEx || []).length
+  const hevyCustomCount = (st.customEx || []).filter(e => e.source === 'Hevy' || e.hevyTemplateId).length
   const missingMediaCount = (st.customEx || []).filter(e => !mediaOf(e)).length
   const special = bp === '★' || bp === '☆' || bp === 'custom'
   // The Library's live result count (GitLab !31), for the same reason: how many are left.
@@ -1142,7 +1143,7 @@ function ExercisePicker({ onPick, title, close }) {
     <div className="chips" ref={bpStrip} style={{ margin: eqOpts.length > 1 ? '10px 0 6px' : '10px 0' }}>
       {favCount > 0 && <button className={'chip' + (bp === '☆' ? ' on' : '')} onClick={() => { setBp('☆'); setEq(''); setShown(50) }}><Icon name="starFill" className="fav-star" />{t('Favourites')} ({favCount})</button>}
       {chosenCount > 0 && <button className={'chip' + (bp === '★' ? ' on' : '')} onClick={() => { setBp('★'); setEq(''); setShown(50) }}><Icon name="starFill" style={{ fontSize: 12, display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Chosen')} ({chosenCount})</button>}
-      {customCount > 0 && <button className={'chip nocap' + (bp === 'custom' ? ' on' : '')} onClick={() => { setBp('custom'); setEq(''); setShown(50) }}><Icon name="sparkles" style={{ fontSize: 12, display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Custom')} ({customCount}){missingMediaCount ? <span className="dim"> · {missingMediaCount} {t('without media')}</span> : null}</button>}
+      {customCount > 0 && <button className={'chip nocap' + (bp === 'custom' ? ' on' : '')} onClick={() => { setBp('custom'); setEq(''); setShown(50) }}><Icon name="sparkles" style={{ fontSize: 12, display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Custom')} ({customCount}){hevyCustomCount ? <span className="dim"> · Hevy {hevyCustomCount}</span> : null}{missingMediaCount ? <span className="dim"> · {missingMediaCount} {t('without media')}</span> : null}</button>}
       <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setShown(50) }}>{t('All')}</button>
       {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setShown(50) }}>{t(b)}</button>)}
     </div>
@@ -1156,7 +1157,7 @@ function ExercisePicker({ onPick, title, close }) {
         <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, and a photo or video if you like')}</div></div><Icon name="plus" className="chev" />
       </div>}
       {f.slice(0, shown).map(e => <div key={e.id} className="item" {...tappable(() => onPick(e))}>
-        <Thumb ex={e} /><div className="grow"><div className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</div><div className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</div></div>
+        <Thumb ex={e} /><div className="grow"><div className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}{e.custom && (e.source === 'Hevy' || e.hevyTemplateId) && <span className="tag" style={{ marginInlineStart: 6 }}>Hevy</span>}</div><div className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</div></div>
         {/* Accent tag = already in a routine/log ("Chosen"); the yellow star by the name = favourite. */}
         {e.custom && !mediaOf(e) && <button className="tag" style={{ border: 0 }} onClick={ev => { ev.stopPropagation(); customExSheet(e) }}>{t('Add media')}</button>}
         {usage[e.id] && <span className="tag acc"><Icon name="starFill" /></span>}
