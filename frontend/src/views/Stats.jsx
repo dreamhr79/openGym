@@ -533,15 +533,19 @@ export default function Stats() {
               </div>
             </div>
           })}</div>
-          <div className="small dim ex-progress-caption">
-            {onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
+          <div className="ex-progress-foot">
+            <span className="small dim ex-progress-caption">
+              {onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
+            </span>
+            {(onE1 || (!onEff && showEff)) && <details className="ex-progress-info">
+              <summary aria-label={t('More information')}><Icon name="info" /></summary>
+              <div className="small dim">
+                {onE1
+                  ? t('Best estimate from {0} on {1} — an estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))
+                  : t('A fuller dot means less left in the tank — the same weight at a lower {0} is progress the line alone does not show.', hd)}
+              </div>
+            </details>}
           </div>
-          {onE1 && <div className="small dim" style={{ marginTop: 4 }}>
-            {t('Best estimate from {0} on {1} — an estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))}
-          </div>}
-          {!onEff && !onE1 && showEff && <div className="small dim" style={{ marginTop: 4 }}>
-            {t('A fuller dot means less left in the tank — the same weight at a lower {0} is progress the line alone does not show.', hd)}
-          </div>}
         </> : <div className="muted small">{t('Finish your first workout to see progress curves here.')}</div>}
       </div>
     </div>
