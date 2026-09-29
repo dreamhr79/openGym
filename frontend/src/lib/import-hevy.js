@@ -211,6 +211,27 @@ function makeResolver(templates) {
   }
 }
 
+/**
+ * Backfill provenance for Hevy customs created by older versions of the importer.
+ * Old imports used ids prefixed with "im" but did not retain the template id. We deliberately
+ * do not guess a Hevy template id from a name: that would create false identities. Instead we
+ * mark only legacy imported rows, preserve every existing field/id, and carry the old name as
+ * the Hevy title. History/routines therefore keep pointing at exactly the same exercise.
+ */
+export function migrateLegacyHevyCustoms(state) {
+  if (!state || !Array.isArray(state.customEx)) return 0
+  let changed = 0
+  for (const ex of state.customEx) {
+    if (!ex?.custom || !String(ex.id || '').startsWith('im')) continue
+    if (ex.source === 'Hevy' || ex.hevyTemplateId) continue
+    ex.source = 'Hevy'
+    if (!ex.hevyTitle && ex.n) ex.hevyTitle = String(ex.n)
+    ex.hevyLegacy = true
+    changed++
+  }
+  return changed
+}
+
 const toProfileWeight = (wKg, unit) => {
   if (wKg == null || !isFinite(wKg)) return 0
   if (unit === 'lb') return Math.round(wKg / LB_TO_KG * 10) / 10
