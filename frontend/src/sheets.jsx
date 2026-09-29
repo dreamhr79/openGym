@@ -889,20 +889,29 @@ function ExerciseHistory({ exId }) {
     <div className="chart" style={{ marginTop: 8 }}>
       <LineChart points={onE1 ? h.e1rmPoints : h.points} h={140} unit={onE1 ? st.unit : unit} color="var(--blue)" />
     </div>
-    <div className="small row" style={{ margin: '6px 0 4px', gap: 5 }}>
-      <Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />
-      {t('Best:')} <b className="accent">{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</b>
+    <div className="ex-history-best">
+      <Icon name="trophy" />
+      <span>{t('Best')}</span>
+      <strong>{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</strong>
     </div>
     <h4 className="sec">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</h4>
-    <div className="list">
-      {h.sessions.map(s => <div key={s.id} className="item" style={{ alignItems: 'flex-start' }}>
-        <div className="grow">
-          <div className="tt">{fmtDate(s.d, true)} {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}</div>
-          <div className="ss">{s.sets.map(x => setLabel(exId, x, s.target, speedUnitOf(st))).join('  ·  ')}</div>
-          {tail(s) && <div className="small dim" style={{ marginTop: 3 }}>{tail(s)}</div>}
+    <div className="ex-history-list">
+      {h.sessions.map(s => {
+        const labels = s.sets.map(x => setLabel(exId, x, s.target, speedUnitOf(st)))
+        return <div key={s.id} className="ex-history-row">
+          <div className="ex-history-date">
+            <strong>{fmtDate(s.d, true)}</strong>
+            {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}
+          </div>
+          <div className="ex-history-result">
+            <strong><bdi dir="ltr">{labels[0] || '—'}</bdi></strong>
+            {labels.length > 1 && <div>{labels.slice(1).map((label, i) => <bdi dir="ltr" key={i}>{label}</bdi>)}</div>}
+            <small>{s.sets.length} {t('sets')}{tail(s) ? ' · ' + tail(s) : ''}</small>
+          </div>
+          {s.value != null && s.value > 0 && <b className="accent nocap ex-history-value">{fmtNum(s.value)} {unit}</b>}
+          <span className="sr-only">{labels.join('  ·  ')}</span>
         </div>
-        {s.value != null && s.value > 0 && <b className="accent nocap" style={{ whiteSpace: 'nowrap' }}>{fmtNum(s.value)} {unit}</b>}
-      </div>)}
+      })}
     </div>
   </>
 }
