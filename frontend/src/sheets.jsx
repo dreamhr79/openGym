@@ -1942,7 +1942,10 @@ export const dayOverrideSheet = iso => ui().openSheet(close => <DayOverride iso=
 // stack underneath their detail sheet, so Back returns to the same date.
 function DayWorkouts({ iso, close }) {
   const st = useStore(s => s.S)
-  const workouts = workoutsOn(st, iso)
+  // Calendar groups legacy/imported sessions by workoutDay(), which falls back to the
+  // start timestamp when d is missing or invalid. Use the same canonical day here so tapping
+  // a heatmap cell can never open an apparently empty day.
+  const workouts = (st.workouts || []).filter(w => workoutDay(w) === iso)
   const today = todayISO()
   const future = iso > today
   const plannedIds = effectiveRoutineIds(st, iso)
@@ -2140,7 +2143,7 @@ function WorkoutDetail({ w, close }) {
         <div className="wd-set-list">{e.sets.filter(hasCompletedWork).length
           ? e.sets.filter(hasCompletedWork).map((set, si) => <div className="wd-set-row" key={si}>
               <span className="wd-set-num">{si + 1}</span>
-              <span className="wd-set-value">{setLabel(e.id, set, e.target, speedUnitOf(st))}</span>
+              <span className="wd-set-value ss">{setLabel(e.id, set, e.target, speedUnitOf(st))}</span>
             </div>)
           : <div className="ss">{t('no sets')}</div>}</div>
         {e.note && <div className="small dim" style={{ marginTop: 5 }}>
