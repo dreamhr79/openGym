@@ -777,16 +777,20 @@ function OneRM({ ex }) {
   const [r, setR] = useState(best ? best.r : 5)
   const est = estimate1RM(w, r)
   return <>
-    <h4 className="sec">{t('Estimated 1RM')}</h4>
-    {best && <div className="small" style={{ marginBottom: 8 }}>
-      {t('From your log:')} <b className="accent">{fmtNum(best.est)} {st.unit}</b>
-      <span className="dim"> · {t('{0} × {1} on {2}', fmtNum(best.w) + ' ' + st.unit, best.r, fmtDate(best.d, true))}</span>
-    </div>}
-    <div className="row cfgrow" style={{ marginBottom: 10 }}>
+    <div className="onerm-card">
+      <div className="onerm-head">
+        <span>{t('Estimated 1RM')}</span>
+        <strong>{best ? fmtNum(best.est) + ' ' + st.unit : (est === null ? '—' : fmtNum(est) + ' ' + st.unit)}</strong>
+      </div>
+      {best && <div className="small dim onerm-source">
+        {t('From your log:')} {t('{0} × {1} on {2}', fmtNum(best.w) + ' ' + st.unit, best.r, fmtDate(best.d, true))}
+      </div>}
+    </div>
+    <div className="row cfgrow onerm-inputs" style={{ marginBottom: 10 }}>
       <Stepper label={t('Weight ({0})', st.unit)} value={w} step={2.5} onChange={setW} />
       <Stepper label={t('Reps')} value={r} step={1} decimal={false} onChange={setR} />
     </div>
-    <div className="row between" style={{ marginBottom: 4 }}>
+    <div className="row between onerm-live" style={{ marginBottom: 4 }}>
       <span className="muted small">{t('Estimate')}</span>
       <b className="accent" style={{ fontSize: 20 }}>{est === null ? '—' : fmtNum(est) + ' ' + st.unit}</b>
     </div>
