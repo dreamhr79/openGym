@@ -210,6 +210,16 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const refHead = ref ? `${refBest ? t('Best set') : t('Last time')} (${fmtDate(ref.d)}): ` : ''
   const refSets = ref ? (refBest ? [ref.set] : ref.sets).map(s => setLabel(entry.id, s, ref.target, speedUnitOf(S))) : []
   const refText = ref ? refHead + refSets.join(', ') : refBest && last ? t('Best set: nothing logged this way yet') : null
+  // Hevy-style per-row reference: the useful comparison belongs beside the set being logged,
+  // not in a long paragraph above the table. Work rows align to work rows; warm-ups intentionally
+  // have no previous value because history comparisons are about working sets.
+  const refWorkSets = ref ? (refBest ? [ref.set] : (ref.sets || []).filter(x => !isWarmupRow(x))) : []
+  const previousFor = (row, rowIndex) => {
+    if (isWarmupRow(row) || !refWorkSets.length) return '—'
+    const workIndex = entry.sets.slice(0, rowIndex + 1).filter(x => !isWarmupRow(x)).length - 1
+    const prev = refWorkSets[Math.min(workIndex, refWorkSets.length - 1)]
+    return prev ? setLabel(entry.id, prev, ref.target, speedUnitOf(S)) : '—'
+  }
   const refAction = refBest ? t('Show last time instead') : t('Show your best set instead')
   // The button's text is the reference, which says nothing about what a tap does; its name
   // carries both, the reference first as it reads on screen, then the switch.
@@ -542,18 +552,22 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       {t('From {0}:', fmtDate(pinnedNote.d, true))} {pinnedNote.note}
     </div>}
     {entry.note && <div className="exnote">{entry.note}</div>}
-    {planLine}
-    {refLine}
+    <div className="workout-quickmeta">
+      {planLine}
+      {guidance && onProgressionSettings && <button type="button" className="progchip" onClick={onProgressionSettings}>
+        <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
+        <span>{t(guidance.policyLabel)}</span>
+      </button>}
+    </div>
     {guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
       aria-label={t('Open progression settings')} onClick={onProgressionSettings}>
-      <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
-      <span><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}</span>
+      <span className="small dim">{t(...guidance.why)}</span>
     </button>}
     </>}
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
           columns; over L/R rows it also has to skip the side badge that sits in front of the weight cell */}
-      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className="eff-sp">{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
+      <div className={'sethead hevy' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp">{t('Set')}</span>{!perSide && <span className="prev-sp">{t('Previous')}</span>}<span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className="eff-sp">{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
       {entry.sets.map((s, i) => {
         const warm = isWarmupRow(s)
         const warmBefore = i > 0 && isWarmupRow(entry.sets[i - 1])
@@ -578,6 +592,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
           ) : (
           <div ref={el => onSetRowRef?.(i, el)} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '') + (timed ? ' timed' : '')}>
             <button type="button" className="n" aria-label={t('Set {0}', phaseNum)} title={t('More')} onClick={() => openSetMenu(s, i)}>{phaseNum}</button>
+            <button type="button" className="setprev" title={refAction} aria-label={refAction} onClick={() => update(st => { st.logRef = refBest ? 'last' : 'best' })}><bdi dir="ltr">{previousFor(s, i)}</bdi></button>
             {cell(s, i, col1, 'w')}
             {col2 && cell(s, i, col2, 'r')}
             {col3 && effortCell(s, i, col3)}
