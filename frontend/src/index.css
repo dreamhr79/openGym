@@ -1774,3 +1774,17 @@ body.chips-dragging *{cursor:inherit}
   .setrow .setprev{font-size:11px}
   .setrow .stp.w button,.setrow .stp.r button{width:26px}
 }
+
+/* Exercise progress: make the recent sessions read as results, not a paragraph dump. */
+.ex-progress-best{display:inline-flex;align-items:center;gap:6px;margin:8px 0 4px;padding:6px 9px;border-radius:10px;background:color-mix(in srgb,var(--acc) 10%,var(--surface-2));color:var(--label-2);font-size:12px}
+.ex-progress-best .icn{color:var(--yellow)}
+.ex-progress-best strong{color:var(--acc);font-size:14px}
+.ex-progress-list{margin-top:4px}
+.ex-progress-row{display:grid;grid-template-columns:82px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:var(--hair) solid var(--sep)}
+.ex-progress-row time{color:var(--label-3);font-size:12px;line-height:1.3}
+.ex-progress-result{min-width:0;display:flex;flex-direction:column;gap:3px}
+.ex-progress-result>strong{font-size:15px;font-weight:650;color:var(--label);font-variant-numeric:tabular-nums}
+.ex-progress-result>span{display:flex;gap:5px 10px;flex-wrap:wrap;color:var(--label-2);font-size:12px;font-variant-numeric:tabular-nums}
+.ex-progress-result small{color:var(--label-3);font-size:11px}
+.ex-progress-caption{margin-top:8px}
+@media(max-width:390px){.ex-progress-row{grid-template-columns:68px minmax(0,1fr);gap:9px}}
