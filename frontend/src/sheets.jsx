@@ -1087,6 +1087,7 @@ function ExercisePicker({ onPick, title, close }) {
   const [bp, setBp] = useState('')          // '' = all, '★' = chosen, '☆' = favourites, 'custom' = all custom, 'hevy' = imported Hevy custom
   const [eq, setEq] = useState('')          // '' = any equipment
   const [showAll, setShowAll] = useState(false)
+  const [customMedia, setCustomMedia] = useState('all') // all | missing | ready
   const [shown, setShown] = useState(50)
   const [byMuscle, setByMuscle] = useState(false)
   const searchRef = useRef(null)
@@ -1096,6 +1097,9 @@ function ExercisePicker({ onPick, title, close }) {
   const profile = activeProfile(st)
   const inScope = e => bp === '★' ? usage[e.id] : bp === '☆' ? isFav(st, e.id) : bp === 'custom' ? e.custom === true : bp === 'hevy' ? e.custom === true && (e.source === 'Hevy' || e.hevyTemplateId) : (!bp || e.bp === bp)
   let base = searchExercises(all.filter(inScope), q)
+  if ((bp === 'custom' || bp === 'hevy') && customMedia !== 'all') {
+    base = base.filter(e => customMedia === 'missing' ? !mediaOf(e) : !!mediaOf(e))
+  }
   if (bp === '★') base = [...base].sort((a, b) => (usage[b.id] - usage[a.id]) || exerciseNameFor(a).localeCompare(exerciseNameFor(b)))
   const eqFiltered = (profile && !showAll) ? base.filter(e => exAvailable(st, e)) : base
   const eqOpts = equipmentOf(eqFiltered)
@@ -1108,6 +1112,7 @@ function ExercisePicker({ onPick, title, close }) {
   const customCount = (st.customEx || []).length
   const hevyCustomCount = (st.customEx || []).filter(e => e.source === 'Hevy' || e.hevyTemplateId).length
   const missingMediaCount = (st.customEx || []).filter(e => !mediaOf(e)).length
+  const hevyMissingMediaCount = (st.customEx || []).filter(e => (e.source === 'Hevy' || e.hevyTemplateId) && !mediaOf(e)).length
   const special = bp === '★' || bp === '☆' || bp === 'custom' || bp === 'hevy'
   // The Library's live result count (GitLab !31), for the same reason: how many are left.
   const narrowed = !!(q.trim() || bp || eqOn)
@@ -1148,6 +1153,11 @@ function ExercisePicker({ onPick, title, close }) {
       <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setShown(50) }}>{t('All')}</button>
       {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setShown(50) }}>{t(b)}</button>)}
     </div>
+    {(bp === 'custom' || bp === 'hevy') && <div className="chips" style={{ marginBottom: 10 }}>
+      <button className={'chip nocap' + (customMedia === 'all' ? ' on' : '')} onClick={() => { setCustomMedia('all'); setShown(50) }}>{t('All')}</button>
+      <button className={'chip nocap' + (customMedia === 'missing' ? ' on' : '')} onClick={() => { setCustomMedia('missing'); setShown(50) }}>{t('Without media')} ({bp === 'hevy' ? hevyMissingMediaCount : missingMediaCount})</button>
+      <button className={'chip nocap' + (customMedia === 'ready' ? ' on' : '')} onClick={() => { setCustomMedia('ready'); setShown(50) }}>{t('With media')}</button>
+    </div>}
     {eqOpts.length > 1 && <div className="chips" ref={eqStrip} style={{ marginBottom: 10 }}>
       <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</button>
       {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</button>)}
@@ -1158,7 +1168,7 @@ function ExercisePicker({ onPick, title, close }) {
         <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, and a photo or video if you like')}</div></div><Icon name="plus" className="chev" />
       </div>}
       {f.slice(0, shown).map(e => <div key={e.id} className="item" {...tappable(() => ((bp === 'custom' || bp === 'hevy') && e.custom) ? customExSheet(e) : onPick(e))}>
-        <Thumb ex={e} /><div className="grow"><div className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}{e.custom && (e.source === 'Hevy' || e.hevyTemplateId) && <span className="tag" style={{ marginInlineStart: 6 }}>Hevy</span>}</div><div className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</div></div>
+        <Thumb ex={e} /><div className="grow"><div className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}{e.custom && (e.source === 'Hevy' || e.hevyTemplateId) && <span className="tag" style={{ marginInlineStart: 6 }}>Hevy</span>}</div><div className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}{(bp === 'custom' || bp === 'hevy') && e.custom ? ` · ${mediaOf(e) ? t('media added') : t('no media')}` : ''}</div></div>
         {/* Accent tag = already in a routine/log ("Chosen"); the yellow star by the name = favourite. */}
         {e.custom && !mediaOf(e) && <button className="tag" style={{ border: 0 }} onClick={ev => { ev.stopPropagation(); customExSheet(e) }}>{t('Add media')}</button>}
         {usage[e.id] && <span className="tag acc"><Icon name="starFill" /></span>}
