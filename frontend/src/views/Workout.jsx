@@ -1316,7 +1316,10 @@ function ActiveWorkout() {
         })}
       </div>
     ) : <>
-      <div className="muted small" style={{ marginBottom: 6 }}>{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>
+      <div className="workout-position">
+        <span>{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</span>
+        <span className="tag acc">{t('Current')}</span>
+      </div>
       <SwipeCards index={unitIdx} count={units.length} revision={A}
         timerKey={timer && `${timer.endsAt}:${timer.forIdx ?? ''}`} workKey={work?.endsAt}
         onNavigate={navigateUnit} renderPreview={direction => {
@@ -1358,8 +1361,9 @@ function ActiveWorkout() {
     </>) : <div className="empty"><div className="ico"><Icon name="shuffle" /></div>{t('Freestyle workout — add your first exercise.')}</div>}
 
     <div style={{ height: 12 }} />
-    {!listMode && <div className="row">
+    {!listMode && <div className="workout-nav">
       <Button icon="chevronLeft" disabled={unitIdx <= 0} onClick={() => navigateUnit(-1)}>{t('Prev')}</Button>
+      <div className="workout-nav-count"><strong>{unitIdx + 1}</strong><span>/ {units.length}</span></div>
       <Button trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => navigateUnit(1)}>{t('Next')}</Button>
     </div>}
     {!listMode && <div style={{ height: 10 }} />}
