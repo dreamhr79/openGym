@@ -183,6 +183,15 @@ function makeResolver(templates) {
       const name = (t?.title || fallbackTitle || 'exercise').toLowerCase()
       c = {
         id: 'im' + uid(), n: name, custom: true, eq: 'custom', tg: '', desc: '',
+        // Keep provenance on Hevy-only exercises. This is user data (not part of the 1,324-row
+        // built-in catalogue) and lets the Library distinguish imported customs from exercises
+        // the user created by hand, while retaining the stable Hevy template identity for future
+        // re-imports/remapping.
+        source: 'Hevy',
+        ...(templateId ? { hevyTemplateId: String(templateId) } : {}),
+        ...(t?.title ? { hevyTitle: String(t.title) } : fallbackTitle ? { hevyTitle: String(fallbackTitle) } : {}),
+        ...(t?.primary_muscle_group ? { hevyMuscleGroup: String(t.primary_muscle_group) } : {}),
+        ...(t?.type ? { hevyType: String(t.type) } : {}),
         bp: bpOfTemplate(t) || (t?.type === 'distance_duration' || t?.type === 'duration' ? 'cardio' : null)
           || 'upper legs',
       }
