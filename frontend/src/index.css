@@ -1757,3 +1757,20 @@ body.chips-dragging *{cursor:inherit}
 .wd-set-num{color:var(--label-3);font-variant-numeric:tabular-nums;text-align:right}
 .wd-set-value{min-width:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 @media (max-width:380px){.wd-ex{gap:9px}.wd-set-row{font-size:14px}}
+
+/* Active workout: compact Hevy-like logging table. Previous performance sits beside each set,
+   while OpenGym keeps its target/progression logic as quiet context above the rows. */
+.workout-quickmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+.workout-quickmeta .planline{margin:0!important}
+.progchip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:5px 9px;background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc);font:600 12px/1.2 inherit;white-space:nowrap}
+.progline{margin-top:2px!important;padding:0!important;background:transparent!important;border:0!important;min-height:0!important}
+.sethead.hevy .n-sp{width:24px;text-align:center}
+.sethead .prev-sp{flex:1.35;min-width:72px;text-align:start}
+.setrow .setprev{flex:1.35 1 0;min-width:72px;border:0;background:transparent;color:var(--label-3);font:500 12px/1.25 inherit;text-align:start;padding:4px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setrow.done .setprev{opacity:.65}
+@media(max-width:390px){
+  .sethead{gap:5px}.setrow{gap:5px}
+  .sethead .prev-sp,.setrow .setprev{min-width:62px;flex:1.15}
+  .setrow .setprev{font-size:11px}
+  .setrow .stp.w button,.setrow .stp.r button{width:26px}
+}
