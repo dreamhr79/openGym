@@ -1788,3 +1788,19 @@ body.chips-dragging *{cursor:inherit}
 .ex-progress-result small{color:var(--label-3);font-size:11px}
 .ex-progress-caption{margin-top:8px}
 @media(max-width:390px){.ex-progress-row{grid-template-columns:68px minmax(0,1fr);gap:9px}}
+
+/* Exercise detail: scan-friendly summary before the controls. */
+.ex-detail-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.ex-detail-stat{min-width:0;border:var(--hair) solid var(--sep);border-radius:14px;background:var(--surface-2);padding:10px 11px;text-align:left;color:var(--label)}
+.ex-detail-stat>span{display:flex;align-items:center;gap:5px;color:var(--label-3);font-size:11px}
+.ex-detail-stat>span .icn{font-size:13px}.ex-detail-stat:first-child>span .icn{color:var(--yellow)}
+.ex-detail-stat>strong{display:block;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex-detail-stat>small{display:block;margin-top:2px;color:var(--label-3);font-size:10px}
+button.ex-detail-stat{font:inherit;cursor:pointer}
+.ex-detail-actions{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px;margin:8px 0 2px}
+.ex-detail-actions .btn{margin:0!important}
+.onerm-card{margin-top:18px;padding:11px 12px;border:var(--hair) solid var(--sep);border-radius:14px;background:var(--surface-2)}
+.onerm-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.onerm-head>span{color:var(--label-3);font-size:12px}.onerm-head>strong{color:var(--acc);font-size:19px}
+.onerm-source{margin-top:3px}.onerm-inputs{margin-top:10px}.onerm-live{padding:0 2px}
+@media(max-width:390px){.ex-detail-actions{grid-template-columns:1fr}.ex-detail-stat{padding:9px}}
