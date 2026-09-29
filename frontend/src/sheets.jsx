@@ -1056,20 +1056,34 @@ function relinkExerciseHistory(from, to) {
     ;(s.routines || []).forEach(r => (r.ex || []).forEach(e => { if (e.id === from.id) e.id = to.id }))
     if (s.active) (s.active.entries || []).forEach(e => { if (e.id === from.id) e.id = to.id })
 
-    const oldWeight = s.exWeights?.[from.id]
-    if (oldWeight != null) {
+    // The destination may already have its own OpenGym history. Keep the better progression
+    // weight rather than blindly overwriting it with whichever exercise happened to be moved.
+    const oldWeight = Number(s.exWeights?.[from.id])
+    const targetWeight = Number(s.exWeights?.[to.id])
+    if (Number.isFinite(oldWeight) && oldWeight > 0) {
       s.exWeights = s.exWeights || {}
-      if (s.exWeights[to.id] == null) s.exWeights[to.id] = oldWeight
+      s.exWeights[to.id] = Number.isFinite(targetWeight) && targetWeight > 0
+        ? betterWeight(to, oldWeight, targetWeight)
+        : oldWeight
       delete s.exWeights[from.id]
     }
-    if (s.exNotes?.[from.id]) {
+
+    // Notes are both useful when two histories become one. Preserve the destination note first
+    // and append a distinct imported note instead of silently dropping either one.
+    const oldNote = String(s.exNotes?.[from.id] || '').trim()
+    const targetNote = String(s.exNotes?.[to.id] || '').trim()
+    if (oldNote) {
       s.exNotes = s.exNotes || {}
-      if (!s.exNotes[to.id]) s.exNotes[to.id] = s.exNotes[from.id]
+      s.exNotes[to.id] = targetNote && targetNote !== oldNote ? `${targetNote}\n${oldNote}` : (targetNote || oldNote)
       delete s.exNotes[from.id]
     }
+
     if (s.favEx?.includes(from.id)) {
       s.favEx = [...new Set(s.favEx.filter(id => id !== from.id).concat(to.id))]
     }
+
+    // These are equipment settings, not performance history. A setting already chosen for the
+    // destination wins; otherwise carry the imported exercise's setting across.
     if (s.barWeights && Object.prototype.hasOwnProperty.call(s.barWeights, from.id)) {
       if (!Object.prototype.hasOwnProperty.call(s.barWeights, to.id)) s.barWeights[to.id] = s.barWeights[from.id]
       delete s.barWeights[from.id]
@@ -1077,6 +1091,16 @@ function relinkExerciseHistory(from, to) {
     if (s.loadKind && Object.prototype.hasOwnProperty.call(s.loadKind, from.id)) {
       if (!Object.prototype.hasOwnProperty.call(s.loadKind, to.id)) s.loadKind[to.id] = s.loadKind[from.id]
       delete s.loadKind[from.id]
+    }
+
+    // Keep the imported identity as an audit trail on a custom destination. Built-in catalogue
+    // rows are immutable, so their workout history itself is the durable record of the merge.
+    if (to.custom) {
+      const dest = (s.customEx || []).find(e => e.id === to.id)
+      if (dest) {
+        dest.mergedFrom = [...new Set([...(dest.mergedFrom || []), from.id])]
+        if (from.hevyTemplateId) dest.hevyMergedTemplateIds = [...new Set([...(dest.hevyMergedTemplateIds || []), String(from.hevyTemplateId)])]
+      }
     }
     s.customEx = (s.customEx || []).filter(e => e.id !== from.id)
   }, true)
