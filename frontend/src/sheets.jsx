@@ -2200,13 +2200,15 @@ function WorkoutDetail({ w, close }) {
       </div>
     }) : entryRows(groups[0]?.units || [])}
     {/* Progress photos and form-check videos: added and removed right here, on the saved record. */}
-    <WorkoutMediaSection w={w} />
-    <div className="small muted" style={{ margin: '4px 0 6px' }}>{t('Session note')}</div>
-    <textarea ref={noteRef} className="input" rows={2} maxLength={NOTE_MAX} value={note}
-      placeholder={t('How the session went as a whole.')}
-      onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
-    <div style={{ height: 14 }} />
-    {st.active && <p className="small muted">{t('Finish the current workout first.')}</p>}
+    <div className="wd-section"><WorkoutMediaSection w={w} /></div>
+    <div className="wd-note-card">
+      <div className="wd-section-title"><Icon name="note" />{t('Session note')}</div>
+      <textarea ref={noteRef} className="input" rows={3} maxLength={NOTE_MAX} value={note}
+        placeholder={t('How the session went as a whole.')}
+        onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
+    </div>
+    {st.active && <p className="small muted wd-edit-lock">{t('Finish the current workout first.')}</p>}
+    <div className="wd-actions">
     {/* The editor starts from the record as it is, so a note typed here goes in first — the same
         flush the date row does, and the unmount hook then has nothing left to write over it. */}
     <Button icon="pencil" disabled={!!st.active} onClick={() => {
@@ -2246,6 +2248,7 @@ function WorkoutDetail({ w, close }) {
     {/* Matched the way the edits above are, not by id: a workout from before ids has none, and
         filtering on `x.id !== undefined` took every other one of them with it. */}
     <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
+    </div>
   </>
 }
 // The sentence a workout's Delete adds when its photos and videos go with it — every file the
