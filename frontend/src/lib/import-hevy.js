@@ -165,7 +165,17 @@ function makeResolver(templates) {
       matchedIds.add(pinned)
       return pinned
     }
-    const key = templateId || String(fallbackTitle || '').toLowerCase()
+    // The API template map intentionally stays conservative, but the same importer also ships a
+    // verified English-title alias table for CSV exports. Use that table as a safe second chance
+    // before inventing a custom exercise: it keeps Hevy history attached to the built-in catalogue
+    // entry, which also restores its thumbnail/GIF, muscle metadata and progression history.
+    const titleKey = String(byId.get(templateId)?.title || fallbackTitle || '').trim().toLowerCase()
+    const titlePinned = HEVY_TITLE_MAP[titleKey]
+    if (titlePinned && EXIDX[titlePinned]) {
+      matchedIds.add(titlePinned)
+      return titlePinned
+    }
+    const key = templateId || titleKey
     if (!key) return null
     let c = created.get(key)
     if (!c) {
