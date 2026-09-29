@@ -1041,10 +1041,61 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     <CustomMediaField media={media} url={url} onChange={onMedia} />
     <div style={{ height: 14 }} />
     <Button variant="primary" onClick={save}>{existing ? t('Save') : t('Create exercise')}</Button>
+    {existing && (existing.source === 'Hevy' || existing.hevyTemplateId || existing.hevyLegacy) && <><div style={{ height: 8 }} /><Button variant="tinted" icon="swap" onClick={() => relinkExerciseSheet(existing)}>{t('Correct linked exercise')}</Button><div className="muted small" style={{ marginTop: 6 }}>{t('Moves Hevy history to the exercise you choose. Changing media above never changes history.')}</div></>}
     {existing && <><div style={{ height: 8 }} /><Button variant="danger" icon="trash" onClick={() => { close(); deleteCustomEx(existing) }}>{t('Delete exercise')}</Button></>}
   </>
 }
 export const customExSheet = (existing, onDone, prefill) => ui().openSheet(close => <CustomExForm existing={existing} prefill={prefill} onDone={onDone} close={close} />)
+// Re-link an imported/custom exercise to another catalogue entry without throwing its history away.
+// Every reference is moved as one transaction; the old custom row is then removed. This is
+// intentionally separate from editing media: changing a photo never changes an exercise id.
+function relinkExerciseHistory(from, to) {
+  if (!from?.id || !to?.id || from.id === to.id) return
+  update(s => {
+    ;(s.workouts || []).forEach(w => (w.entries || []).forEach(e => { if (e.id === from.id) e.id = to.id }))
+    ;(s.routines || []).forEach(r => (r.ex || []).forEach(e => { if (e.id === from.id) e.id = to.id }))
+    if (s.active) (s.active.entries || []).forEach(e => { if (e.id === from.id) e.id = to.id })
+
+    const oldWeight = s.exWeights?.[from.id]
+    if (oldWeight != null) {
+      s.exWeights = s.exWeights || {}
+      if (s.exWeights[to.id] == null) s.exWeights[to.id] = oldWeight
+      delete s.exWeights[from.id]
+    }
+    if (s.exNotes?.[from.id]) {
+      s.exNotes = s.exNotes || {}
+      if (!s.exNotes[to.id]) s.exNotes[to.id] = s.exNotes[from.id]
+      delete s.exNotes[from.id]
+    }
+    if (s.favEx?.includes(from.id)) {
+      s.favEx = [...new Set(s.favEx.filter(id => id !== from.id).concat(to.id))]
+    }
+    if (s.barWeights && Object.prototype.hasOwnProperty.call(s.barWeights, from.id)) {
+      if (!Object.prototype.hasOwnProperty.call(s.barWeights, to.id)) s.barWeights[to.id] = s.barWeights[from.id]
+      delete s.barWeights[from.id]
+    }
+    if (s.loadKind && Object.prototype.hasOwnProperty.call(s.loadKind, from.id)) {
+      if (!Object.prototype.hasOwnProperty.call(s.loadKind, to.id)) s.loadKind[to.id] = s.loadKind[from.id]
+      delete s.loadKind[from.id]
+    }
+    s.customEx = (s.customEx || []).filter(e => e.id !== from.id)
+  }, true)
+  toast(t('History moved to “{0}”', exerciseNameFor(to)))
+}
+
+function relinkExerciseSheet(ex) {
+  exercisePicker(target => {
+    if (!target || target.id === ex.id) return
+    confirmSheet({
+      title: t('Use “{0}” instead?', exerciseNameFor(target)),
+      message: t('All workout history and routine references for “{0}” will move to this exercise. Sets, weights and progress are kept.', exerciseNameFor(ex)),
+      confirmText: t('Move history'),
+      onConfirm: () => relinkExerciseHistory(ex, target)
+    })
+  }, { title: t('Correct linked exercise') })
+}
+
+
 
 export function deleteCustomEx(ex, afterDelete) {
   if (S().active?.entries.some(e => e.id === ex.id)) { toast(t('Finish your current workout first')); return }
