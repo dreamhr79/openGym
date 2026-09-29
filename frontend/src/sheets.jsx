@@ -2134,8 +2134,8 @@ function WorkoutDetail({ w, close }) {
   // curve it sits on, which is the question a past workout raises most often.
   const entryRow = (e, i) => {
     const ex = EXIDX[e.id]
-    return <div key={i} className="row wd-ex" style={{ alignItems: 'flex-start' }} {...tappable(() => exerciseHistorySheet(e.id))}>
-      {ex && <Thumb ex={ex} />}
+    return <div key={i} className="row wd-ex" {...tappable(() => exerciseHistorySheet(e.id))}>
+      <div className="wd-thumb">{ex ? <Thumb ex={ex} /> : <div className="thumb thumb-x"><Icon name="dumbbell" /></div>}</div>
       <div className="grow wd-ex-body"><div className={`tt ${exerciseNameClass(ex)} wd-ex-title`} style={{ fontWeight: 600 }}>{nameOf(e)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}</div>
         <div className="wd-set-list">{e.sets.filter(hasCompletedWork).length
           ? e.sets.filter(hasCompletedWork).map((set, si) => <div className="wd-set-row" key={si}>
@@ -2170,9 +2170,20 @@ function WorkoutDetail({ w, close }) {
   // anywhere) renders flat.
   const groups = sessionSections(w.entries)
   const grouped = groups.length > 1 || (groups[0] && groups[0].rid && (w.routineIds || []).length > 1)
+  const workSetCount = w.entries.reduce((n, e) => n + e.sets.filter(hasCompletedWork).length, 0)
+  const prCount = (w.prs || []).length
   return <>
-    <h3>{w.name}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
+    <div className="wd-head">
+      <h3>{w.name}</h3>
+      <div className="wd-date">{fmtDate(w.d, true)}</div>
+      <div className="wd-summary">
+        <span><Icon name="timer" />{durPart(w.end - w.start).join(' ')}</span>
+        <span><Icon name="dumbbell" />{fmtVol(w.vol, st.unit)}</span>
+        <span><Icon name="check" />{t('{0} sets', workSetCount)}</span>
+        {prCount > 0 && <span className="wd-summary-pr"><Icon name="trophy" />{prCount} PR</span>}
+        {w.bw ? <span>{fmtNum(w.bw)} {st.unit}</span> : null}
+      </div>
+    </div>
     {grouped ? groups.map(g => {
       const r = g.rid ? st.routines.find(x => x.id === g.rid) : null
       const items = g.items.map(i => w.entries[i])
