@@ -1843,6 +1843,52 @@ function DayOverride({ iso, close }) {
 }
 export const dayOverrideSheet = iso => ui().openSheet(close => <DayOverride iso={iso} close={close} />)
 
+/* ============================ day workout browser ============================ */
+// A date is navigation first, planning second. The week strip and calendar both open this
+// browser so tapping a day never unexpectedly changes the plan. Saved workouts stay on the
+// stack underneath their detail sheet, so Back returns to the same date.
+function DayWorkouts({ iso, close }) {
+  const st = useStore(s => s.S)
+  const workouts = workoutsOn(st, iso)
+  const today = todayISO()
+  const future = iso > today
+  const plannedIds = effectiveRoutineIds(st, iso)
+  const plannedNames = plannedIds.map(id => st.routines.find(r => r.id === id)?.name).filter(Boolean)
+  const addWorkout = () => {
+    close()
+    if (iso === today) { nav('/workout'); return }
+    logPastWorkoutSheet({ iso, routineIds: plannedIds })
+  }
+  return <>
+    <div className="row between" style={{ marginBottom: 10 }}>
+      <div>
+        <h3 style={{ marginBottom: 2 }}>{fmtDate(iso, true)}</h3>
+        <div className="muted small">
+          {workouts.length
+            ? t(workouts.length === 1 ? '{0} workout' : '{0} workouts', workouts.length)
+            : future ? t('Planned day') : t('No workouts on this day')}
+          {plannedNames.length ? ' · ' + t('Plan: {0}', deriveSessionName(plannedNames)) : ''}
+        </div>
+      </div>
+      <button className="iconbtn" aria-label={t('Close')} onClick={close}><Icon name="xmark" /></button>
+    </div>
+    {workouts.length
+      ? <div className="list">{workouts.map((w, i) => <WorkoutRow key={w.id || w.start || i} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
+      : <div className="empty" style={{ padding: '20px 8px' }}><div className="ico"><Icon name="history" /></div>{future ? t('Nothing logged yet.') : t('No workouts on this day.')}</div>}
+    {!future && <>
+      <div style={{ height: 12 }} />
+      <Button variant={workouts.length ? 'tinted' : 'primary'} icon="plus" onClick={addWorkout}>
+        {workouts.length ? t('Add another workout') : t('Add workout')}
+      </Button>
+    </>}
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" className="dim" icon="calendar" onClick={() => { close(); dayOverrideSheet(iso) }}>
+      {plannedIds.length ? t('Change plan for this day') : t('Plan this day')}
+    </Button>
+  </>
+}
+export const dayWorkoutsSheet = iso => ui().openSheet(close => <DayWorkouts iso={iso} close={close} />)
+
 function DayAssign({ day, close }) {
   const st = useStore(s => s.S)
   // A weekday holds a routine-id list; this single-pick sheet sets an empty day to exactly one
@@ -2125,9 +2171,7 @@ function Calendar({ start, close }) {
     const ws = byDay[iso], planned = effectiveRoutineIds(st, iso).length > 0, ovr = st.dayPlan[iso] !== undefined
     const dotCls = ws ? 'done' : ovr && planned ? 'ovr' : planned ? 'plan' : ''
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (iso === todayISO() ? ' today' : '')} onClick={() => {
-      if (!ws) { close(); dayOverrideSheet(iso); return }
-      if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
-      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
+      close(); dayWorkoutsSheet(iso)
     }}><span>{d}</span><i className={dotCls} /></button>)
   }
   return <>
@@ -2143,7 +2187,7 @@ function Calendar({ start, close }) {
       <span><i style={{ background: 'var(--label-3)' }} />{t('Planned')}</span>
       <span><i style={{ background: 'var(--orange)' }} />{t('Rescheduled')}</span>
     </div>
-    <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap a trained day for details · tap any other day to plan a session')}</div>
+    <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap any day to see its workouts · planning is a separate action')}</div>
   </>
 }
 export const calendarSheet = start => ui().openSheet(close => <Calendar start={start} close={close} />)
