@@ -8,7 +8,7 @@ import { uid, exerciseNameText } from '../lib/format.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
 import { Thumb } from '../components/Media.jsx'
-import { glyphPicker, exercisePicker, exConfigSheet, confirmSheet } from '../sheets.jsx'
+import { glyphPicker, exercisePicker, exConfigSheet, confirmSheet, relinkExerciseHistory } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { Button, Row, SelectRow, Switch } from '../components/ui.jsx'
@@ -364,9 +364,35 @@ export default function RoutineEdit() {
       // "+" on the exercise that is already in the slot: nothing to replace, and no toast that
       // says something was.
       if (quick && ex.id === openedOn) { picker.close(); return }
-      if (quick) { commit(ex, current => replaceSlotExercise(current, ex.id, live, id)); return }
-      const next = replaceSlotExercise(slot, ex.id, live, id)
-      exConfigSheet(ex, next, cfg => commit(ex, current => ({ id: ex.id, sg: current.sg, ...cfg })), null, r, null, null, t('Replace'))
+      const source = exOr(openedOn)
+      const importedHevy = source?.custom && (source.source === 'Hevy' || source.hevyTemplateId || source.hevyLegacy)
+      const replaceOnly = () => {
+        if (quick) { commit(ex, current => replaceSlotExercise(current, ex.id, live, id)); return }
+        const next = replaceSlotExercise(slot, ex.id, live, id)
+        exConfigSheet(ex, next, cfg => commit(ex, current => ({ id: ex.id, sg: current.sg, ...cfg })), null, r, null, null, t('Replace'))
+      }
+      // An unmatched Hevy import is commonly a temporary identity rather than a genuinely
+      // different movement. Replacing it with the correct catalogue exercise therefore offers
+      // to move the old identity too. Ordinary routine substitutions remain routine-only.
+      if (importedHevy && ex.id !== openedOn) {
+        picker.close()
+        confirmSheet({
+          title: t('Move history to “{0}”?', exerciseNameText(ex)),
+          message: t('This Hevy exercise has imported history. Move all past workouts, routines, weights, notes and progress to the exercise you selected?'),
+          confirmText: t('Move history'),
+          cancelText: t('Routine only'),
+          onConfirm: () => relinkExerciseHistory(source, ex),
+          onCancel: () => {
+            const fresh = useStore.getState().S
+            const current = fresh.routines.find(x => x.id === id)?.ex[i]
+            if (!current || current.id !== openedOn) return
+            edit(x => { if (x[i]?.id === openedOn) x[i] = replaceSlotExercise(x[i], ex.id, fresh, id) })
+            toast(t('Routine changed; history kept separate'))
+          }
+        })
+        return
+      }
+      replaceOnly()
     }, { title: t('Replace exercise') })
   }
   // This routine on paper (#282): the weekly printout's page for one session, through the same
