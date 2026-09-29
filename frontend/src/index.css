@@ -1830,3 +1830,26 @@ button.ex-detail-stat{font:inherit;cursor:pointer}
 .ex-progress-info{position:relative;flex:none}.ex-progress-info>summary{list-style:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;cursor:pointer;color:var(--label-3)}
 .ex-progress-info>summary::-webkit-details-marker{display:none}.ex-progress-info[open]>summary{background:var(--surface-3);color:var(--acc)}
 .ex-progress-info>div{position:absolute;right:0;bottom:34px;z-index:5;width:min(270px,75vw);padding:9px 10px;border:var(--hair) solid var(--sep);border-radius:12px;background:var(--surface-2);box-shadow:0 8px 28px rgba(0,0,0,.2);line-height:1.4}
+
+
+/* Active workout readability pass: metadata is information, not one long sentence.
+   Previous performance must remain legible on a phone while logging a set. */
+.workout-quickmeta{display:grid;grid-template-columns:1fr;gap:7px;margin:7px 0 8px}
+.workout-quickmeta .planline{display:block;margin:0!important;padding:8px 10px;border-radius:10px;background:var(--surface-2);color:var(--label-2)!important;font-size:13px;line-height:1.35}
+.workout-quickmeta .refline{display:flex;width:100%;align-items:flex-start;justify-content:space-between;gap:10px;margin:0!important;padding:8px 10px!important;border-radius:10px;background:var(--surface-2)!important;color:var(--label-2)!important;font-size:13px!important;font-weight:600;line-height:1.4;text-align:start;white-space:normal}
+.workout-quickmeta .refline>span{min-width:0;overflow-wrap:anywhere}
+.workout-quickmeta .refline .icn{flex:none;margin-top:2px;color:var(--label-2)}
+.workout-quickmeta .progchip{justify-self:start;margin-top:1px;font-size:13px;padding:7px 11px}
+.progline{display:block;width:100%;text-align:start;margin:2px 0 8px!important}
+.progline .small{font-size:13px!important;line-height:1.4;color:var(--label-2)!important}
+
+.sethead .prev-sp{flex:1.5;min-width:78px;color:var(--label-2);font-weight:650}
+.setrow .setprev{flex:1.5 1 0;min-width:78px;color:var(--label-2);font:650 13px/1.28 inherit;text-align:start;padding:5px 3px;overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:normal}
+.setrow .setprev bdi{display:block}
+.setrow.done .setprev{opacity:.8}
+@media(max-width:390px){
+  .sethead{gap:4px}.setrow{gap:4px}
+  .sethead .prev-sp,.setrow .setprev{min-width:74px;flex:1.45}
+  .setrow .setprev{font-size:12.5px;line-height:1.25}
+  .setrow .stp.w button,.setrow .stp.r button{width:24px}
+}
