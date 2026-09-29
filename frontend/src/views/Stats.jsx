@@ -516,11 +516,24 @@ export default function Stats() {
               ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
               : <LineChart points={onE1 ? e1ChartPts : topPts} h={150} unit={exUnit} color="var(--blue)" />}
           </div>
-          <div style={{ marginTop: 8 }}>{exList.map((p, i) => <div key={i} className="row between small" style={{ padding: '6px 0', borderBottom: 'var(--hair) solid var(--sep)' }}>
-            <span className="muted">{fmtDate(p.d, true)}</span><span>{p.sets.map(s => setLabel(curEx, s, p.target, speedUnit)).join('  ')}</span></div>)}</div>
-          <div className="small dim" style={{ marginTop: 8 }}>
+          {!onEff && <div className="ex-progress-best">
+            <Icon name="trophy" />
+            <span>{onE1 ? t('Best estimate') : t('Best')}</span>
+            <strong>{fmtNum(onE1 ? e1Best.est : exBest)} {onE1 ? S.unit : exUnit}</strong>
+          </div>}
+          <div className="ex-progress-list">{exList.map((p, i) => {
+            const labels = p.sets.map(set => setLabel(curEx, set, p.target, speedUnit))
+            return <div key={i} className="ex-progress-row">
+              <time>{fmtDate(p.d, true)}</time>
+              <div className="ex-progress-result">
+                <strong><bdi dir="ltr">{labels[0] || '—'}</bdi></strong>
+                {labels.length > 1 && <span>{labels.slice(1).map((label, j) => <bdi dir="ltr" key={j}>{label}</bdi>)}</span>}
+                <small>{p.sets.length} {t('sets')}</small>
+              </div>
+            </div>
+          })}</div>
+          <div className="small dim ex-progress-caption">
             {onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
-            {onEff ? '' : <> · {t('Best:')}{' '}<b className="accent">{fmtNum(onE1 ? e1Best.est : exBest)} {onE1 ? S.unit : exUnit}</b></>}
           </div>
           {onE1 && <div className="small dim" style={{ marginTop: 4 }}>
             {t('Best estimate from {0} on {1} — an estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))}
