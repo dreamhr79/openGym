@@ -1509,9 +1509,21 @@ body.chips-dragging *{cursor:inherit}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
 /* A past workout's detail: each exercise opens its history, and a superset's exercises share the
    routine editor's label and bar. */
-.wd-ex{margin-bottom:12px;cursor:pointer;border-radius:10px}
+.wd-head{margin-bottom:16px}
+.wd-head h3{margin-bottom:2px;font-size:24px;letter-spacing:-.025em}
+.wd-date{color:var(--label-2);font-size:14px;margin-bottom:10px}
+.wd-summary{display:flex;gap:7px;flex-wrap:wrap}
+.wd-summary>span{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:9px;background:var(--surface-2);color:var(--label-2);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.wd-summary .icn{font-size:13px}
+.wd-summary .wd-summary-pr{color:var(--yellow)}
+.wd-ex{margin-bottom:9px;padding:11px;gap:11px;align-items:flex-start;cursor:pointer;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep)}
 .wd-ex>.grow{flex:1;min-width:0}
-.wd-ex:active{background:var(--surface-2)}
+.wd-ex:active{background:var(--surface-2);transform:scale(.995)}
+.wd-thumb{flex:0 0 auto}
+.wd-thumb .thumb{width:52px;height:52px;border-radius:11px}
+.wd-ex .chev{align-self:center;margin-inline-start:2px}
+.wd-ex .pr{font-size:10px;padding:2px 5px;margin-inline-start:5px;vertical-align:1px}
+.wd-set-row:nth-child(n+2){border-top:1px solid color-mix(in srgb,var(--sep) 55%,transparent);padding-top:3px;margin-top:1px}
 .wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
 .wd-ss .ss-label{margin:0 0 8px}
 .wd-ss .wd-ex:last-child{margin-bottom:0}
