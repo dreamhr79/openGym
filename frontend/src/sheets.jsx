@@ -2043,9 +2043,14 @@ function WorkoutDetail({ w, close }) {
     const ex = EXIDX[e.id]
     return <div key={i} className="row wd-ex" style={{ alignItems: 'flex-start' }} {...tappable(() => exerciseHistorySheet(e.id))}>
       {ex && <Thumb ex={ex} />}
-      <div className="grow"><div className={`tt ${exerciseNameClass(ex)}`} style={{ fontWeight: 600 }}>{nameOf(e)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}</div>
-        <div className="ss">{e.sets.filter(hasCompletedWork).map(s => setLabel(e.id, s, e.target, speedUnitOf(st))).join('  ·  ') || t('no sets')}</div>
-        {e.note && <div className="small dim" style={{ marginTop: 3 }}>
+      <div className="grow wd-ex-body"><div className={`tt ${exerciseNameClass(ex)} wd-ex-title`} style={{ fontWeight: 600 }}>{nameOf(e)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}</div>
+        <div className="wd-set-list">{e.sets.filter(hasCompletedWork).length
+          ? e.sets.filter(hasCompletedWork).map((set, si) => <div className="wd-set-row" key={si}>
+              <span className="wd-set-num">{si + 1}</span>
+              <span className="wd-set-value">{setLabel(e.id, set, e.target, speedUnitOf(st))}</span>
+            </div>)
+          : <div className="ss">{t('no sets')}</div>}</div>
+        {e.note && <div className="small dim" style={{ marginTop: 5 }}>
           {e.notePin && <Icon name="flag" style={{ fontSize: 12, marginInlineEnd: 4, verticalAlign: '-1px', color: 'var(--yellow)' }} />}{e.note}
         </div>}</div>
       <Icon name="chevronRight" className="chev" style={{ alignSelf: 'center' }} />
