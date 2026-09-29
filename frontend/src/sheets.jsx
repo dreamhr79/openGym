@@ -1049,7 +1049,7 @@ export const customExSheet = (existing, onDone, prefill) => ui().openSheet(close
 // Re-link an imported/custom exercise to another catalogue entry without throwing its history away.
 // Every reference is moved as one transaction; the old custom row is then removed. This is
 // intentionally separate from editing media: changing a photo never changes an exercise id.
-function relinkExerciseHistory(from, to) {
+export function relinkExerciseHistory(from, to) {
   if (!from?.id || !to?.id || from.id === to.id) return
   update(s => {
     ;(s.workouts || []).forEach(w => (w.entries || []).forEach(e => { if (e.id === from.id) e.id = to.id }))
