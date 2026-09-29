@@ -526,8 +526,9 @@ export default function Stats() {
             return <div key={i} className="ex-progress-row">
               <time>{fmtDate(p.d, true)}</time>
               <div className="ex-progress-result">
+                <span className="sr-only">{labels.join('  ')}</span>
                 <strong><bdi dir="ltr">{labels[0] || '—'}</bdi></strong>
-                {labels.length > 1 && <span>{labels.slice(1).map((label, j) => <bdi dir="ltr" key={j}>{label}</bdi>)}</span>}
+                {labels.length > 1 && <span aria-label={labels.join('  ')}>{labels.slice(1).map((label, j) => <bdi dir="ltr" key={j}>{label}</bdi>)}</span>}
                 <small>{p.sets.length} {t('sets')}</small>
               </div>
             </div>
