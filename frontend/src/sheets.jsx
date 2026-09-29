@@ -891,26 +891,26 @@ function ExerciseHistory({ exId }) {
     </div>
     <div className="ex-history-best">
       <Icon name="trophy" />
-      <span>{t('Best')}</span>
+      <span>{t('Best:')}</span>
       <strong>{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</strong>
     </div>
     <h4 className="sec">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</h4>
-    <div className="ex-history-list">
+    <div className="ex-history-list list">
       {h.sessions.map(s => {
         const labels = s.sets.map(x => setLabel(exId, x, s.target, speedUnitOf(st)))
-        return <div key={s.id} className="ex-history-row">
+        return <div key={s.id} className="ex-history-row item">
           <div className="ex-history-date">
             <strong>{fmtDate(s.d, true)}</strong>
             {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}
           </div>
           <div className="ex-history-result">
+            <span className="ss sr-only">{labels.join('  ·  ')}</span>
             <strong><bdi dir="ltr">{labels[0] || '—'}</bdi></strong>
             {labels.length > 1 && <div>{labels.slice(1).map((label, i) => <bdi dir="ltr" key={i}>{label}</bdi>)}</div>}
             <small>{s.sets.length} {t('sets')}{tail(s) ? ' · ' + tail(s) : ''}</small>
           </div>
           {s.value != null && s.value > 0 && <b className="accent nocap ex-history-value">{fmtNum(s.value)} {unit}</b>}
-          <span className="sr-only">{labels.join('  ·  ')}</span>
-        </div>
+          </div>
       })}
     </div>
   </>
