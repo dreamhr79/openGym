@@ -554,6 +554,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {entry.note && <div className="exnote">{entry.note}</div>}
     <div className="workout-quickmeta">
       {planLine}
+      {refLine}
       {guidance && onProgressionSettings && <button type="button" className="progchip" onClick={onProgressionSettings}>
         <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
         <span>{t(guidance.policyLabel)}</span>
@@ -561,7 +562,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     </div>
     {guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
       aria-label={t('Open progression settings')} onClick={onProgressionSettings}>
-      <span className="small dim">{t(...guidance.why)}</span>
+      <span className="small dim"><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}</span>
     </button>}
     </>}
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
