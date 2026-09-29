@@ -1723,3 +1723,15 @@ body.chips-dragging *{cursor:inherit}
 [dir="rtl"] .hm-wrap,[dir="rtl"] .cal-grid{direction:ltr}
 /* Tight tracking is tuned for Latin; Arabic is a connected script and gets none. */
 [dir="rtl"] *{letter-spacing:0}
+
+
+/* Workout history: one completed set per row. Keeps dense imported sessions readable on phones. */
+.wd-ex{gap:12px;padding-block:11px}
+.wd-ex>.thumb{flex:0 0 auto}
+.wd-ex-body{min-width:0}
+.wd-ex-title{line-height:1.22;margin-bottom:5px}
+.wd-set-list{display:flex;flex-direction:column;gap:2px;max-width:100%}
+.wd-set-row{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:baseline;gap:6px;min-height:22px;color:var(--label-2);font-size:15px;line-height:1.35}
+.wd-set-num{color:var(--label-3);font-variant-numeric:tabular-nums;text-align:right}
+.wd-set-value{min-width:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+@media (max-width:380px){.wd-ex{gap:9px}.wd-set-row{font-size:14px}}
