@@ -1818,3 +1818,15 @@ button.ex-detail-stat{font:inherit;cursor:pointer}
 .ex-history-result>small{color:var(--label-3);font-size:10px;line-height:1.35}
 .ex-history-value{font-size:13px;white-space:nowrap}
 @media(max-width:390px){.ex-history-row{grid-template-columns:72px minmax(0,1fr);gap:8px}.ex-history-value{grid-column:2}}
+
+/* Final active-workout navigation + stats info polish. */
+.workout-position{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 7px;color:var(--label-3);font-size:12px}
+.workout-position .tag{font-size:10px}
+.workout-nav{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.workout-nav .btn{margin:0}.workout-nav .btn:last-child{justify-self:stretch}
+.workout-nav-count{display:flex;align-items:baseline;gap:3px;min-width:38px;justify-content:center;color:var(--label-3);font-variant-numeric:tabular-nums}
+.workout-nav-count strong{font-size:16px;color:var(--label)}.workout-nav-count span{font-size:11px}
+.ex-progress-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px}
+.ex-progress-info{position:relative;flex:none}.ex-progress-info>summary{list-style:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;cursor:pointer;color:var(--label-3)}
+.ex-progress-info>summary::-webkit-details-marker{display:none}.ex-progress-info[open]>summary{background:var(--surface-3);color:var(--acc)}
+.ex-progress-info>div{position:absolute;right:0;bottom:34px;z-index:5;width:min(270px,75vw);padding:9px 10px;border:var(--hair) solid var(--sep);border-radius:12px;background:var(--surface-2);box-shadow:0 8px 28px rgba(0,0,0,.2);line-height:1.4}
