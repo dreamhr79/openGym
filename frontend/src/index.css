@@ -1524,6 +1524,16 @@ body.chips-dragging *{cursor:inherit}
 .wd-ex .chev{align-self:center;margin-inline-start:2px}
 .wd-ex .pr{font-size:10px;padding:2px 5px;margin-inline-start:5px;vertical-align:1px}
 .wd-set-row:nth-child(n+2){border-top:1px solid color-mix(in srgb,var(--sep) 55%,transparent);padding-top:3px;margin-top:1px}
+.wd-section{margin-top:18px}
+.wd-note-card{margin-top:16px;padding:13px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep)}
+.wd-section-title{display:flex;align-items:center;gap:6px;margin-bottom:9px;color:var(--label-2);font-size:12px;font-weight:700}
+.wd-section-title .icn{font-size:14px;color:var(--acc)}
+.wd-note-card textarea{background:var(--surface-2);border:0;resize:vertical}
+.wd-edit-lock{margin:10px 2px 0}
+.wd-actions{margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}
+.wd-actions>.btn{border-radius:12px}
+.wd-actions>.btn.danger{margin-top:4px}
+
 .wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
 .wd-ss .ss-label{margin:0 0 8px}
 .wd-ss .wd-ex:last-child{margin-bottom:0}
