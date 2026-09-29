@@ -132,8 +132,16 @@ export function matchesExerciseSearch(exercise, query) {
 const ENV = import.meta.env || {}
 const IMG_BASE = ENV.VITE_IMG_BASE || 'img/'
 const GIF_BASE = ENV.VITE_GIF_BASE || 'gif/'
-export const imgSrc = ex => IMG_BASE + ex.img
-export const gifSrc = ex => GIF_BASE + ex.gif
+// Built-ins keep using the downloaded/CDN exercise media. Custom exercises may instead carry
+// an owner-supplied absolute image URL (or data URL later), so imported Hevy-only lifts can have
+// a thumbnail without pretending to be one of the 1,324 upstream catalogue exercises.
+const mediaSrc = (base, value) => {
+  const src = String(value || '').trim()
+  if (!src) return ''
+  return /^(https?:|data:|blob:)/i.test(src) ? src : base + src
+}
+export const imgSrc = ex => mediaSrc(IMG_BASE, ex?.img)
+export const gifSrc = ex => mediaSrc(GIF_BASE, ex?.gif)
 
 // Cardio exercises log time + speed instead of weight × reps.
 export const isCardio = idOrEx => (typeof idOrEx === 'string' ? EXIDX[idOrEx] : idOrEx)?.bp === 'cardio'
