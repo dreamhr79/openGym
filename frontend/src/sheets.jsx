@@ -822,17 +822,29 @@ function ExerciseDetail({ ex, close }) {
       {(ex.secondaries?.length ? ex.secondaries : smOf(ex)).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
-    {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
-    <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
-    {last && <Button icon="history" style={{ marginTop: 4 }} onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
+    {(best > 0 || last) && <div className="ex-detail-stats">
+      {best > 0 && <div className="ex-detail-stat">
+        <span><Icon name="trophy" />{t('Best')}</span>
+        <strong>{fmtNum(best)} {st.unit}</strong>
+      </div>}
+      {last && <button type="button" className="ex-detail-stat ex-detail-last" onClick={() => exerciseHistorySheet(ex.id)}>
+        <span><Icon name="history" />{t('Last workout')} · {fmtDate(last.d)}</span>
+        <strong>{last.sets.length ? setLabel(ex.id, last.sets[0], last.target, speedUnitOf(st)) : '—'}</strong>
+        {last.sets.length > 1 && <small>{last.sets.length} {t('sets')}</small>}
+      </button>}
+    </div>}
+    <div className="ex-detail-actions">
+      <Button variant="primary" icon="plus" onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
+      {last && <Button icon="history" onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
+    </div>}
     {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
       <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
     </div>}
-    {modeOf({ id: ex.id }) === 'reps' && <>
+    {modeOf({ id: ex.id }) === 'reps' && loadKindFor(st, ex.id) !== 'none' && <div className="ex-detail-plates">
       <h4 className="sec">{t('Plate loading')}</h4>
       <BarWeightEditor ex={ex} extra={t('You still log the total weight — this only feeds the plate line under each set.')} />
-    </>}
+    </div>}
     {/* No one-rep max on an assistance machine: the load is the help you were given, so the
         calculator would answer "your 1RM is 23 kg" about a number that gets smaller as you get
         stronger (issue #232). Cardio has none for the same kind of reason. */}
