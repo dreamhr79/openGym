@@ -1903,3 +1903,32 @@ button.ex-detail-stat{font:inherit;cursor:pointer}
   .setrow:not(.setrow-side)>.stp.r,.setrow:not(.setrow-side)>.num.r{grid-column:3;grid-row:1}
   .setrow:not(.setrow-side)>.effort,.setrow:not(.setrow-side)>.eff{grid-column:4;grid-row:1}
 }
+
+
+/* Mobile workout polish: keep completion control on the logging row and make Last time scannable. */
+.workout-quickmeta .refline-content{min-width:0;display:flex;flex-direction:column;gap:5px}
+.workout-quickmeta .refline-head{display:flex;align-items:baseline;gap:7px;min-width:0}
+.workout-quickmeta .refline-head strong{color:var(--label);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.035em}
+.workout-quickmeta .refline-head time{color:var(--label-3);font-size:11px;font-weight:550}
+.workout-quickmeta .refline-sets{display:flex;flex-wrap:wrap;gap:5px 7px}
+.workout-quickmeta .refline-sets bdi{display:inline-flex;align-items:center;padding:3px 7px;border-radius:7px;background:var(--surface-3);color:var(--label);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.history-source-card:has(+ .history-source-note){border-color:color-mix(in srgb,var(--acc) 42%,var(--sep));background:color-mix(in srgb,var(--acc) 7%,var(--surface-2))}
+.history-source-card:has(+ .history-source-note) strong::after{content:' ✓';color:var(--acc)}
+
+@media(max-width:430px){
+  .sethead.hevy:not(.per-side):not(.eff3),
+  .setrow:not(.setrow-side):not(.eff3){grid-template-columns:34px minmax(0,1fr) minmax(0,.86fr) 38px}
+  .sethead.hevy:not(.per-side).eff3,
+  .setrow:not(.setrow-side).eff3{grid-template-columns:34px minmax(0,1fr) minmax(0,.86fr) minmax(0,.72fr) 38px}
+  .sethead.hevy:not(.per-side):not(.eff3) .ck-sp:last-child{grid-column:4;grid-row:1}
+  .sethead.hevy:not(.per-side).eff3 .eff-sp{grid-column:4;grid-row:1}
+  .sethead.hevy:not(.per-side).eff3 .ck-sp:last-child{grid-column:5;grid-row:1}
+  .setrow:not(.setrow-side):not(.eff3)>.check,
+  .setrow:not(.setrow-side):not(.eff3)>label:last-child,
+  .setrow:not(.setrow-side):not(.eff3)>button:last-child{grid-column:4;grid-row:1}
+  .setrow:not(.setrow-side).eff3>.check,
+  .setrow:not(.setrow-side).eff3>label:last-child,
+  .setrow:not(.setrow-side).eff3>button:last-child{grid-column:5;grid-row:1}
+  .setrow:not(.setrow-side)>.setprev{grid-column:2 / -1;grid-row:2}
+}
