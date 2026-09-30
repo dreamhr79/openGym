@@ -104,7 +104,77 @@ export function useMediaPicker() {
   return { pick, busy, warning, setWarning, note, storable, showAdd: !serverLacks, canAdd: !busy && storable && !serverLacks }
 }
 
-export default function CustomMediaField({ media, url, onChange }) {
+const EXERCISEDB_URL = 'https://exercisedb-api.vercel.app/api/v1/exercises'
+
+function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState(exerciseName || '')
+  const [results, setResults] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [using, setUsing] = useState(null)
+
+  useEffect(() => { if (!open) setQuery(exerciseName || '') }, [exerciseName, open])
+
+  const search = async () => {
+    const q = String(query || exerciseName || '').trim()
+    if (!q) { toast(t('Give the exercise a name first')); return }
+    setSearching(true)
+    try {
+      const res = await fetch(`${EXERCISEDB_URL}?search=${encodeURIComponent(q)}&limit=8`)
+      if (!res.ok) throw new Error('search')
+      const json = await res.json()
+      const rows = json?.data?.exercises || (Array.isArray(json?.data) ? json.data : [])
+      setResults(rows.filter(x => x?.gifUrl).slice(0, 8))
+      if (!rows.some(x => x?.gifUrl)) toast(t('No exercise images found'))
+    } catch {
+      toast(t('Could not search exercise images right now'))
+    } finally { setSearching(false) }
+  }
+
+  const use = async item => {
+    setUsing(item.exerciseId || item.gifUrl)
+    try {
+      const res = await fetch(item.gifUrl)
+      if (!res.ok) throw new Error('download')
+      const blob = await res.blob()
+      const type = blob.type || 'image/gif'
+      const ext = type === 'image/gif' ? 'gif' : type === 'image/webp' ? 'webp' : type === 'image/png' ? 'png' : 'jpg'
+      const file = new File([blob], `exercise-${item.exerciseId || Date.now()}.${ext}`, { type })
+      const got = await pick(file)
+      if (got) {
+        onUse(got)
+        setOpen(false)
+        toast(t('Exercise image selected'))
+      }
+    } catch {
+      toast(t('Could not save that exercise image'))
+    } finally { setUsing(null) }
+  }
+
+  return <div className="cmf-websearch">
+    <Button variant="ghost" size="sm" icon="search" disabled={busy} onClick={() => setOpen(v => !v)}>
+      {t('Find image')}
+    </Button>
+    {open && <div className="cmf-search-panel">
+      <div className="row" style={{ gap: 8 }}>
+        <input className="input grow" value={query} onChange={e => setQuery(e.target.value)}
+          placeholder={t('Search exercise images')} onKeyDown={e => { if (e.key === 'Enter') search() }} />
+        <Button size="sm" variant="tinted" disabled={searching} onClick={search}>{searching ? t('Searching…') : t('Search')}</Button>
+      </div>
+      {results.length > 0 && <div className="cmf-search-grid">
+        {results.map(item => <button type="button" className="cmf-search-result" key={item.exerciseId || item.gifUrl}
+          disabled={!!using} onClick={() => use(item)}>
+          <img src={item.gifUrl} alt="" loading="lazy" />
+          <span><strong>{item.name}</strong><small>{[...(item.equipments || []), ...(item.targetMuscles || [])].slice(0, 2).join(' · ')}</small></span>
+          {using === (item.exerciseId || item.gifUrl) && <span className="cmf-search-using">{t('Saving…')}</span>}
+        </button>)}
+      </div>}
+      <div className="small dim cmf-note">{t('Results from ExerciseDB. Tap an image to use it for this exercise.')}</div>
+    </div>}
+  </div>
+}
+
+export default function CustomMediaField({ media, url, onChange, exerciseName = '' }) {
   const { pick, busy, warning, setWarning, note, showAdd, canAdd } = useMediaPicker()
   const fileRef = useRef(null)
   const m = mediaOf({ media })
@@ -145,6 +215,8 @@ export default function CustomMediaField({ media, url, onChange }) {
       </div>
     </Row>
     <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={onFile} />
+    {showAdd && <ExerciseImageSearch exerciseName={exerciseName} pick={pick} busy={busy}
+      onUse={got => onChange({ media: got })} />}
     {warning && <div className="small dim cmf-note">{warning}</div>}
     {note && <div className="small dim cmf-note">{note}</div>}
     <input className="input cmf-link" type="url" inputMode="url" autoCapitalize="off" autoCorrect="off" spellCheck={false}
