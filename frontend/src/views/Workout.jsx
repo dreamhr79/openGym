@@ -554,7 +554,12 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {entry.note && <div className="exnote">{entry.note}</div>}
     <div className="workout-quickmeta">
       {planLine}
-      {refLine}
+      {refLine && <div className="workout-history-meta">
+        {refLine}
+        <button type="button" className="history-link" onClick={() => exerciseHistorySheet(entry.id)}>
+          <Icon name="clockRotateLeft" />{t('History')}
+        </button>
+      </div>}
       {guidance && onProgressionSettings && <button type="button" className="progchip" onClick={onProgressionSettings}>
         <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
         <span>{t(guidance.policyLabel)}</span>
