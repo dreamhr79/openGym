@@ -883,36 +883,40 @@ function ExerciseHistory({ exId }) {
   return <>
     <h3 className={exerciseNameClass(ex)} style={{ marginBottom: 2 }}>{exerciseNameFor(ex)}</h3>
     <div className="muted small" style={{ marginBottom: 10 }}>{t('Exercise history')} · {t(h.total === 1 ? '{0} session' : '{0} sessions', h.total)}</div>
-    {/* Only reps work with a load produces an estimate, so the toggle is absent for the rest. */}
-    {h.e1rmPoints.length > 0 && h.metric === 'weight' && <Segmented className="seg-range" value={curve} onChange={setCurve}
-      options={[{ value: 'top', label: t('Top set') }, { value: 'e1rm', label: t('Est. 1RM') }]} />}
-    <div className="chart" style={{ marginTop: 8 }}>
-      <LineChart points={onE1 ? h.e1rmPoints : h.points} h={140} unit={onE1 ? st.unit : unit} color="var(--blue)" />
-    </div>
-    <div className="ex-history-best">
-      <Icon name="trophy" />
-      <span>{t('Best:')}</span>
-      <strong>{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</strong>
-    </div>
-    <h4 className="sec">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</h4>
     <div className="ex-history-list list">
       {h.sessions.map(s => {
         const labels = s.sets.map(x => setLabel(exId, x, s.target, speedUnitOf(st)))
-        return <div key={s.id} className="ex-history-row item">
-          <div className="ex-history-date">
-            <strong>{fmtDate(s.d, true)}</strong>
+        return <div key={s.id} className="ex-history-session item">
+          <div className="ex-history-session-head">
+            <div>
+              <strong>{fmtDate(s.d, true)}</strong>
+              <small>{s.sets.length} {t('sets')}{tail(s) ? ' · ' + tail(s) : ''}</small>
+            </div>
             {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}
           </div>
-          <div className="ex-history-result">
-            <span className="ss sr-only">{labels.join('  ·  ')}</span>
-            <strong><bdi dir="ltr">{labels[0] || '—'}</bdi></strong>
-            {labels.length > 1 && <div>{labels.slice(1).map((label, i) => <bdi dir="ltr" key={i}>{label}</bdi>)}</div>}
-            <small>{s.sets.length} {t('sets')}{tail(s) ? ' · ' + tail(s) : ''}</small>
+          <div className="ex-history-sets">
+            {labels.map((label, i) => <div className="ex-history-set" key={i}>
+              <span>{i + 1}</span>
+              <strong><bdi dir="ltr">{label}</bdi></strong>
+            </div>)}
           </div>
-          {s.value != null && s.value > 0 && <b className="accent nocap ex-history-value">{fmtNum(s.value)} {unit}</b>}
-          </div>
+          <span className="ss sr-only">{labels.join('  ·  ')}</span>
+        </div>
       })}
     </div>
+    <details className="ex-history-analysis">
+      <summary><Icon name="chartLine" />{t('Progress & best')}</summary>
+      {h.e1rmPoints.length > 0 && h.metric === 'weight' && <Segmented className="seg-range" value={curve} onChange={setCurve}
+        options={[{ value: 'top', label: t('Top set') }, { value: 'e1rm', label: t('Est. 1RM') }]} />}
+      <div className="chart" style={{ marginTop: 8 }}>
+        <LineChart points={onE1 ? h.e1rmPoints : h.points} h={140} unit={onE1 ? st.unit : unit} color="var(--blue)" />
+      </div>
+      <div className="ex-history-best">
+        <Icon name="trophy" />
+        <span>{t('Best:')}</span>
+        <strong>{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</strong>
+      </div>
+    </details>
   </>
 }
 export const exerciseHistorySheet = exId => ui().openSheet(close => <ExerciseHistory exId={exId} close={close} />)
