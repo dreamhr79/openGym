@@ -973,6 +973,7 @@ function CustomExForm({ existing, prefill, onDone, close }) {
   // every device.
   const [mediaTouched, setMediaTouched] = useState(false)
   const [url, setUrl] = useState(existing && typeof existing.url === 'string' ? existing.url : '')
+  const [historySource, setHistorySource] = useState(null)
   const onMedia = patch => {
     if ('media' in patch) { setMedia(patch.media); setMediaTouched(true) }
     if ('url' in patch) setUrl(patch.url)
@@ -1039,6 +1040,8 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     // The file goes to the server now rather than after the state's own debounce: another device
     // that sees the reference first shows a tile until it arrives.
     if (ref) syncMedia({ force: true })
+    const destination = exOr(id)
+    if (historySource && historySource.id !== id && destination) relinkExerciseHistory(historySource, destination)
     close()
     toast(existing ? t('Saved') : t('“{0}” created', name))
     onDone && onDone(EXIDX[id])
@@ -1068,9 +1071,20 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     <textarea className="input" rows={4} maxLength={1000} placeholder={t('Description (optional) — setup, cues, anything you want to remember')}
       value={desc} onChange={e => setDesc(e.target.value)} />
     <CustomMediaField media={media} url={url} onChange={onMedia} />
+    <div className="history-source-card">
+      <div>
+        <strong>{t('Take history from…')}</strong>
+        <small>{historySource ? exerciseNameFor(historySource) : t('Optional — choose any exercise')}</small>
+      </div>
+      <Button size="sm" icon="history" onClick={() => exercisePicker(source => {
+        if (!source || source.id === existing?.id) return
+        setHistorySource(source)
+      }, { title: t('Take history from…') })}>{historySource ? t('Change') : t('Choose')}</Button>
+      {historySource && <button type="button" className="iconbtn" aria-label={t('Clear')} onClick={() => setHistorySource(null)}><Icon name="xmark" /></button>}
+    </div>
+    {historySource && <div className="muted small history-source-note">{t('When you save, all past workouts and linked progress from “{0}” move to this exercise. Nothing is duplicated.', exerciseNameFor(historySource))}</div>}
     <div style={{ height: 14 }} />
     <Button variant="primary" onClick={save}>{existing ? t('Save') : t('Create exercise')}</Button>
-    {existing && (existing.source === 'Hevy' || existing.hevyTemplateId || existing.hevyLegacy) && <><div style={{ height: 8 }} /><Button variant="tinted" icon="swap" onClick={() => relinkExerciseSheet(existing)}>{t('Correct linked exercise')}</Button><div className="muted small" style={{ marginTop: 6 }}>{t('Moves Hevy history to the exercise you choose. Changing media above never changes history.')}</div></>}
     {existing && <><div style={{ height: 8 }} /><Button variant="danger" icon="trash" onClick={() => { close(); deleteCustomEx(existing) }}>{t('Delete exercise')}</Button></>}
   </>
 }
