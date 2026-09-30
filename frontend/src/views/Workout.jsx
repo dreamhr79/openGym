@@ -207,7 +207,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // An exercise logged before only in another mode (reps then, a hold today) has a last time but
   // no best set to hold today's rows against. The line stays and says so: gone, it took the
   // switch back to "Last time" with it, reachable then only from Settings or another card.
-  const refHead = ref ? `${refBest ? t('Best set') : t('Last time')} (${fmtDate(ref.d)}): ` : ''
+  const refLabel = refBest ? t('Best set') : t('Last time')
+  const refDate = ref ? fmtDate(ref.d) : ''
+  const refHead = ref ? `${refLabel} (${refDate}): ` : ''
   const refSets = ref ? (refBest ? [ref.set] : ref.sets).map(s => setLabel(entry.id, s, ref.target, speedUnitOf(S))) : []
   const refText = ref ? refHead + refSets.join(', ') : refBest && last ? t('Best set: nothing logged this way yet') : null
   // Hevy-style per-row reference: the useful comparison belongs beside the set being logged,
@@ -229,7 +231,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {/* Each set on its own left-to-right island. In Arabic the first one followed the label's
         direction and read 8×60, while those after a Latin "RIR" read 60×8. A set that carries
         words of a right-to-left script keeps its own direction, still isolated (RTL_LETTER). */}
-    <span>{ref ? <>{refHead}{refSets.map((l, i) => <Fragment key={i}>{i ? ', ' : ''}<bdi dir={RTL_LETTER.test(l) ? 'auto' : 'ltr'}>{l}</bdi></Fragment>)}</> : refText}</span>
+    <span className="refline-content">{ref ? <>
+      <span className="refline-head"><strong>{refLabel}</strong><time>{refDate}</time></span>
+      <span className="refline-sets">{refSets.map((l, i) => <bdi key={i} dir={RTL_LETTER.test(l) ? 'auto' : 'ltr'}>{l}</bdi>)}</span>
+    </> : refText}</span>
     <Icon name="shuffle" />
   </button> : null
   // A bodyweight set has no weight to type, so the column is not there (issue #32) — one
