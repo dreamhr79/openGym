@@ -1853,3 +1853,28 @@ button.ex-detail-stat{font:inherit;cursor:pointer}
   .setrow .setprev{font-size:12.5px;line-height:1.25}
   .setrow .stp.w button,.setrow .stp.r button{width:24px}
 }
+
+
+/* Exercise history: sessions first, analytics second. */
+.workout-history-meta{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;gap:7px}
+.workout-history-meta .refline{min-width:0}
+.history-link{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:var(--hair) solid var(--sep);border-radius:10px;padding:7px 10px;background:var(--surface-2);color:var(--acc);font:650 12px/1.2 inherit;white-space:nowrap}
+.ex-history-list{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.ex-history-session.item{display:block;padding:12px;border:var(--hair) solid var(--sep);border-radius:14px;background:var(--surface-2)}
+.ex-history-session-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.ex-history-session-head>div{min-width:0;display:flex;flex-direction:column;gap:2px}
+.ex-history-session-head strong{font-size:14px;color:var(--label)}
+.ex-history-session-head small{font-size:11px;color:var(--label-3);line-height:1.35}
+.ex-history-sets{display:flex;flex-direction:column}
+.ex-history-set{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:baseline;gap:9px;padding:7px 0;border-top:var(--hair) solid var(--sep)}
+.ex-history-set>span{color:var(--label-3);font-size:12px;text-align:center;font-variant-numeric:tabular-nums}
+.ex-history-set>strong{color:var(--label);font-size:15px;font-weight:650;line-height:1.3;font-variant-numeric:tabular-nums}
+.ex-history-analysis{margin-top:12px;border-top:var(--hair) solid var(--sep);padding-top:8px}
+.ex-history-analysis>summary{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--label-2);font-weight:650;padding:8px 2px;list-style:none}
+.ex-history-analysis>summary::-webkit-details-marker{display:none}
+.ex-history-analysis>summary .icn{color:var(--acc)}
+@media(max-width:390px){
+  .workout-history-meta{grid-template-columns:minmax(0,1fr) auto}
+  .history-link{padding-inline:8px}
+  .ex-history-session.item{padding:10px}
+}
