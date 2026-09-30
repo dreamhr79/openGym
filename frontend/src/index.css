@@ -1878,3 +1878,28 @@ button.ex-detail-stat{font:inherit;cursor:pointer}
   .history-link{padding-inline:8px}
   .ex-history-session.item{padding:10px}
 }
+
+
+/* History source selector in custom exercise editor. */
+.history-source-card{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;margin-top:14px;padding:10px 11px;border:var(--hair) solid var(--sep);border-radius:12px;background:var(--surface-2)}
+.history-source-card>div:first-child{min-width:0;display:flex;flex-direction:column;gap:2px}
+.history-source-card strong{font-size:13px;color:var(--label)}
+.history-source-card small{font-size:11px;color:var(--label-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-source-card .btn{margin:0}
+.history-source-note{margin:6px 2px 0;line-height:1.4}
+
+/* Narrow phones: Previous gets a full readable line under the logging controls. */
+@media(max-width:430px){
+  .sethead.hevy:not(.per-side){display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,.86fr) minmax(0,.82fr);column-gap:6px;row-gap:3px}
+  .sethead.hevy:not(.per-side) .n-sp{grid-column:1;grid-row:1}
+  .sethead.hevy:not(.per-side) .w-sp{grid-column:2;grid-row:1}
+  .sethead.hevy:not(.per-side) .r-sp{grid-column:3;grid-row:1}
+  .sethead.hevy:not(.per-side) .eff-sp{grid-column:4;grid-row:1}
+  .sethead.hevy:not(.per-side) .prev-sp{grid-column:2 / -1;grid-row:2;min-width:0;font-size:10px;letter-spacing:.04em}
+  .setrow:not(.setrow-side){display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,.86fr) minmax(0,.82fr);column-gap:6px;row-gap:4px;align-items:center}
+  .setrow:not(.setrow-side)>.n{grid-column:1;grid-row:1 / span 2}
+  .setrow:not(.setrow-side)>.setprev{grid-column:2 / -1;grid-row:2;min-width:0;width:100%;padding:1px 2px 4px;color:var(--label-2);font-size:13px;font-weight:650;white-space:normal}
+  .setrow:not(.setrow-side)>.stp.w,.setrow:not(.setrow-side)>.num.w{grid-column:2;grid-row:1}
+  .setrow:not(.setrow-side)>.stp.r,.setrow:not(.setrow-side)>.num.r{grid-column:3;grid-row:1}
+  .setrow:not(.setrow-side)>.effort,.setrow:not(.setrow-side)>.eff{grid-column:4;grid-row:1}
+}
