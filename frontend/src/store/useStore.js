@@ -657,7 +657,11 @@ export const useStore = create((set, get) => {
     // start (lib/media-sync.js), so there this always runs; only a store nothing has opened is
     // left alone, since nothing can have been put into it.
     if (hadMedia || mediaStoreInUse()) {
-      const since = Date.now()
+      // Date.now() has millisecond resolution. A file that already existed can share the exact
+      // same timestamp as this line on a fast device/CI runner; retainOnly uses >= because a file
+      // genuinely picked after sign-out starts must survive. Move the boundary one millisecond
+      // forward so equal-timestamp pre-existing files are not mistaken for concurrent new picks.
+      const since = Date.now() + 1
       Promise.resolve(wiped).then(() => readStashes())
         .then(all => mediaStore.retainOnly(new Set(Object.values(all).flatMap(e => [...referencedHashes(e?.state)])), { keepPutAfter: since }))
         .catch(() => {})
