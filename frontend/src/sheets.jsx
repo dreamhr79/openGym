@@ -1076,10 +1076,14 @@ function CustomExForm({ existing, prefill, onDone, close }) {
         <strong>{t('Take history from…')}</strong>
         <small>{historySource ? exerciseNameFor(historySource) : t('Optional — choose any exercise')}</small>
       </div>
-      <Button size="sm" icon="history" onClick={() => exercisePicker(source => {
-        if (!source || source.id === existing?.id) return
-        setHistorySource(source)
-      }, { title: t('Take history from…') })}>{historySource ? t('Change') : t('Choose')}</Button>
+      <Button size="sm" icon="history" onClick={() => {
+        const picker = exercisePicker(source => {
+          if (!source || source.id === existing?.id) return
+          setHistorySource(source)
+          picker.close()
+          toast(t('History source selected: “{0}”', exerciseNameFor(source)))
+        }, { title: t('Take history from…') })
+      }}>{historySource ? t('Change') : t('Choose')}</Button>
       {historySource && <button type="button" className="iconbtn" aria-label={t('Clear')} onClick={() => setHistorySource(null)}><Icon name="xmark" /></button>}
     </div>
     {historySource && <div className="muted small history-source-note">{t('When you save, all past workouts and linked progress from “{0}” move to this exercise. Nothing is duplicated.', exerciseNameFor(historySource))}</div>}
