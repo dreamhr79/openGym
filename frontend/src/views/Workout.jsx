@@ -92,7 +92,7 @@ const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/
 // "last time" recap and the progression line — leaving the name, the ⋯ menu, the one-line plan
 // the rows are measured against, and the sets.
 // Nothing dropped is lost: it is all still on the ⋯ menu, or one ⋮ switch back to list/cards.
-function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onNoProg, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
+function ExerciseBlock({ entryIdx, compact, dense, editing, onRequestReorder, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onNoProg, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const working = useUI(s => s.work)
@@ -290,6 +290,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // workout → Workout controls). The lean default keeps the sets and one "more" button; each
   // switch brings one of the old always-visible button rows back.
   const wc = workoutControls(S)
+  const [reordering, setReordering] = useState(false)
+  const dragEntry = useRef(null)
   const cell = (s, i, col, cls) => (
     <div className={'stp ' + cls + (wc.steppers ? '' : ' plain')}>
       {wc.steppers && <button aria-label={t('Decrease')} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>}
@@ -513,7 +515,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   return <>
     {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
     <div className="row between" style={{ marginBottom: 6 }}>
-      <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', lineHeight: 1.2 }} className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</div>
+      <button type="button" className={'exercise-title-reorder ' + exerciseNameClass(ex)} style={{ fontSize: (compact || dense) ? 17 : 20 }} onClick={onRequestReorder} title={t('Reorder exercises')}>{exerciseNameFor(ex)}</button>
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="pencil" /></button>}
@@ -880,6 +882,7 @@ function ActiveWorkout() {
   // a superset member acts on that member, not on whatever the marker happens to point at.
   const blockProps = idx => ({
     editing,
+    onRequestReorder: editing ? undefined : () => setReordering(true),
     onSwap: () => swapActiveWorkoutExercise(idx),
     onMoveUp: () => moveUnitAt(idx, -1),
     onMoveDown: () => moveUnitAt(idx, 1),
@@ -1156,8 +1159,9 @@ function ActiveWorkout() {
       // out and only shows Ready is not running: it has nothing left to time. A paused one is
       // still the rest you are in, held on purpose, and a re-check leaves it as it is.
       if (!progress.isNew) {
-        const rest = useUI.getState().timer
-        if (!restBeforeWarmup && restOnRecheck({ timerRunning: !!(rest && !rest.ready), unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
+        // A deliberate uncheck -> re-check is a new set-finish gesture from the user's point of
+        // view. Restart the full recovery instead of continuing an older countdown.
+        if (!restBeforeWarmup && !freshWorkoutDone) startRest(restAfter, idx)
         return
       }
 
@@ -1286,6 +1290,28 @@ function ActiveWorkout() {
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
     </div>
+    {reordering && <div className="workout-reorder" onPointerMove={ev => {
+      const selected = dragEntry.current
+      if (!selected) return
+      const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest?.('[data-reorder-entry]')
+      if (!hit) return
+      const fresh = useStore.getState().S.active
+      const from = fresh?.entries.indexOf(selected) ?? -1
+      const to = Number(hit.dataset.reorderEntry)
+      if (from < 0 || !Number.isInteger(to) || from === to) return
+      moveUnitAt(from, to > from ? 1 : -1)
+    }} onPointerUp={() => { dragEntry.current = null }} onPointerCancel={() => { dragEntry.current = null }}>
+      <div className="row between reorder-head"><strong>{t('Reorder exercises')}</strong><Button size="sm" variant="tinted" onClick={() => { dragEntry.current = null; setReordering(false) }}>{t('Done')}</Button></div>
+      <div className="reorder-list">
+        {A.entries.map((entry, idx) => <div key={entry.id + ':' + idx} className="reorder-item" data-reorder-entry={idx}
+          onPointerDown={ev => { ev.preventDefault(); dragEntry.current = entry; ev.currentTarget.setPointerCapture?.(ev.pointerId) }}>
+          <span className="reorder-grip" aria-hidden="true">≡</span>
+          <span className={'grow ' + exerciseNameClass(exOr(entry.id))}>{exerciseNameFor(exOr(entry.id))}</span>
+          <span className="muted small">{entry.sets.filter(s => s.done).length}/{entry.sets.length}</span>
+        </div>)}
+      </div>
+      <div className="small dim">{t('Drag exercises into the order you want for this workout.')}</div>
+    </div>}
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout — no rest timers.')}</div>}
 
