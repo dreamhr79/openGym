@@ -115,34 +115,71 @@ let exerciseDbCatalogPromise = null
 async function exerciseDbCatalog() {
   if (exerciseDbCatalogPromise) return exerciseDbCatalogPromise
   exerciseDbCatalogPromise = (async () => {
-    const firstRes = await fetch(`${EXERCISEDB_URL}?offset=0&limit=100`)
-    if (!firstRes.ok) throw new Error('catalogue')
-    const firstJson = await firstRes.json()
-    const data = firstJson?.data || {}
-    const first = Array.isArray(data) ? data : (data.exercises || [])
-    const pages = Math.max(1, Number(data.totalPages) || 1)
-    const rest = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, i) =>
-      fetch(`${EXERCISEDB_URL}?offset=${(i + 1) * 100}&limit=100`).then(async res => {
-        if (!res.ok) return []
-        const json = await res.json()
-        return Array.isArray(json?.data) ? json.data : (json?.data?.exercises || [])
-      }).catch(() => [])
-    ))
-    return [...first, ...rest.flat()].filter(x => x?.gifUrl)
+    const all = []
+    const seenUrls = new Set()
+    let url = `${EXERCISEDB_URL}?offset=0&limit=100`
+    // Follow the API's own nextPage link instead of guessing how many pages exist. This also
+    // survives deployments that omit totalPages while still returning the full paginated data.
+    while (url && !seenUrls.has(url) && seenUrls.size < 100) {
+      seenUrls.add(url)
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('catalogue')
+      const json = await res.json()
+      const data = json?.data || {}
+      const rows = Array.isArray(data) ? data : (data.exercises || [])
+      all.push(...rows)
+      if (Array.isArray(data)) break
+      url = data.nextPage || null
+      // Older compatible deployments expose totalPages but not nextPage.
+      if (!url && Number(data.currentPage) < Number(data.totalPages)) {
+        url = `${EXERCISEDB_URL}?offset=${Number(data.currentPage) * 100}&limit=100`
+      }
+    }
+    const unique = new Map()
+    for (const item of all) if (item?.gifUrl) unique.set(item.exerciseId || item.gifUrl, item)
+    return [...unique.values()]
   })().catch(e => { exerciseDbCatalogPromise = null; throw e })
   return exerciseDbCatalogPromise
 }
 
 const words = value => String(value || '').toLowerCase().trim().split(/[^a-z0-9]+/).filter(Boolean)
+const SEARCH_EQUIV = {
+  military: ['military', 'overhead', 'shoulder'],
+  overhead: ['overhead', 'military', 'shoulder'],
+  shoulder: ['shoulder', 'overhead', 'military'],
+  machine: ['machine', 'lever', 'smith'],
+  lever: ['lever', 'machine'],
+  press: ['press']
+}
+const tokenMatches = (token, text) => (SEARCH_EQUIV[token] || [token]).some(word => text.includes(word))
+
 function imageSearchScore(item, query) {
   const q = words(query)
   if (!q.length) return 0
   const name = String(item?.name || '').toLowerCase()
-  const meta = [item?.name, ...(item?.equipments || []), ...(item?.targetMuscles || []), ...(item?.bodyParts || [])].join(' ').toLowerCase()
-  if (!q.every(w => meta.includes(w))) return 0
-  let score = q.reduce((n, w) => n + (name.includes(w) ? 20 : 5), 0)
-  if (name === q.join(' ')) score += 100
-  if (name.startsWith(q.join(' '))) score += 60
+  const meta = [
+    item?.name,
+    ...(item?.equipments || []),
+    ...(item?.targetMuscles || []),
+    ...(item?.secondaryMuscles || []),
+    ...(item?.bodyParts || [])
+  ].join(' ').toLowerCase()
+  const matches = q.filter(w => tokenMatches(w, meta))
+  if (!matches.length) return 0
+
+  // Require a meaningful match, but never let a qualifier such as "machine" hide an otherwise
+  // excellent "shoulder press" result. Two-word queries normally need both concepts; longer
+  // queries need all but one.
+  const required = q.length <= 2 ? q.length : q.length - 1
+  if (matches.length < required) return 0
+
+  let score = matches.reduce((n, w) => n + (tokenMatches(w, name) ? 24 : 7), 0)
+  const phrase = q.join(' ')
+  if (name === phrase) score += 120
+  else if (name.startsWith(phrase)) score += 80
+  else if (name.includes(phrase)) score += 60
+  score += matches.length * 12
+  score -= (q.length - matches.length) * 4
   return score
 }
 
