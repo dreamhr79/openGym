@@ -682,6 +682,8 @@ function ActiveWorkout() {
   const update = useStore(s => s.update)
   const { startRest: liveRest, stopRest, stopWork, work, timer } = useUI()
   const A = S.active
+  const [reordering, setReordering] = useState(false)
+  const dragEntry = useRef(null)
   const editing = !!A.editingWorkoutId
   // A past workout has no rest to time — the sets were done days ago. The work timer for
   // timed sets stays, since counting a hold is how its duration gets entered.
