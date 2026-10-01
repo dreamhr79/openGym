@@ -1,38 +1,44 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { imageSearchScore } from './CustomMediaField.jsx'
+import { exerciseDbFilter, imageSearchScore } from './CustomMediaField.jsx'
 
+const params = query => exerciseDbFilter(query).searchParams
 const ex = (name, equipments = [], targetMuscles = ['delts'], bodyParts = ['shoulders']) => ({ name, equipments, targetMuscles, secondaryMuscles: [], bodyParts })
 
-describe('ExerciseDB image ranking helper', () => {
-  it('returns every Smith exercise for a smith query regardless of movement', () => {
-    expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'smith')).toBeGreaterThan(0)
-    expect(imageSearchScore(ex('Smith calf raise', ['smith machine'], ['calves'], ['lower legs']), 'smith')).toBeGreaterThan(0)
+describe('ExerciseDB documented filter builder', () => {
+  it('searches ordinary text through the fuzzy name filter', () => {
+    const p = params('shoulder press')
+    expect(p.get('name')).toBe('shoulder press')
+    expect(p.get('equipments')).toBeNull()
+    expect(p.get('limit')).toBe('25')
   })
 
-  it('returns shoulder exercises for a shoulder query', () => {
-    expect(imageSearchScore(ex('dumbbell lateral raise', ['dumbbell']), 'shoulder')).toBeGreaterThan(0)
-    expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'shoulder')).toBeGreaterThan(0)
+  it('searches smith as equipment so every Smith movement can be returned', () => {
+    const p = params('smith')
+    expect(p.get('equipments')).toBe('smith machine')
+    expect(p.get('name')).toBeNull()
   })
 
-  it('finds a literal Smith bench press', () => {
-    expect(imageSearchScore(ex('Smith bench press', ['smith machine'], ['pectorals'], ['chest']), 'smith bench press')).toBeGreaterThan(0)
-    expect(imageSearchScore(ex('Smith calf raise', ['smith machine'], ['calves'], ['lower legs']), 'smith bench press')).toBe(0)
+  it('combines movement and Smith equipment filters', () => {
+    const p = params('shoulder smith')
+    expect(p.get('name')).toBe('shoulder')
+    expect(p.get('equipments')).toBe('smith machine')
   })
 
-  it('uses AND semantics for shoulder smith', () => {
-    expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'shoulder smith')).toBeGreaterThan(0)
-    expect(imageSearchScore(ex('Smith calf raise', ['smith machine'], ['calves'], ['lower legs']), 'shoulder smith')).toBe(0)
-    expect(imageSearchScore(ex('dumbbell shoulder press', ['dumbbell']), 'shoulder smith')).toBe(0)
+  it('also accepts the phrase smith machine without leaking it into name', () => {
+    const p = params('smith machine bench press')
+    expect(p.get('name')).toBe('bench press')
+    expect(p.get('equipments')).toBe('smith machine')
+  })
+})
+
+describe('ExerciseDB result ranking helper', () => {
+  it('prefers an exact exercise name', () => {
+    expect(imageSearchScore(ex('military press', ['barbell']), 'military press'))
+      .toBeGreaterThan(imageSearchScore(ex('seated military press', ['barbell']), 'military press'))
   })
 
-  it('requires every word in longer queries', () => {
-    expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'shoulder press smith')).toBeGreaterThan(0)
-    expect(imageSearchScore(ex('Smith shoulder shrug', ['smith machine']), 'shoulder press smith')).toBe(0)
-  })
-
-  it('does not silently replace military with shoulder or overhead', () => {
-    expect(imageSearchScore(ex('barbell overhead press', ['barbell']), 'military press')).toBe(0)
-    expect(imageSearchScore(ex('barbell military press', ['barbell']), 'military press')).toBeGreaterThan(0)
+  it('can rank equipment metadata returned by the API', () => {
+    expect(imageSearchScore(ex('calf raise', ['smith machine'], ['calves'], ['lower legs']), 'smith')).toBeGreaterThan(0)
   })
 })
