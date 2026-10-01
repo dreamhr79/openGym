@@ -200,30 +200,39 @@ const base64Blob = (data, type) => {
 }
 
 async function downloadExerciseDbMedia(item) {
-  const url = String(item?.gifUrl || '')
-  if (!url) throw new Error('media-url')
-  const type = url.toLowerCase().includes('.gif') ? 'image/gif' : 'image/jpeg'
-  if (MOBILE) {
-    // Native download bypasses WebView CORS. Keep the remote file only long enough to feed the
-    // normal media ingest; the ingested, hashed copy is what OpenGym stores.
-    const path = `exercisedb-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    let savedPath = null
+  const urls = [
+    item?.exerciseId ? `https://static.exercisedb.dev/media/${encodeURIComponent(item.exerciseId)}.gif` : null,
+    item?.gifUrl
+  ].map(x => String(x || '')).filter(Boolean)
+  if (!urls.length) throw new Error('media-url')
+  let lastError = null
+  for (const url of [...new Set(urls)]) {
+    const type = url.toLowerCase().includes('.gif') ? 'image/gif' : 'image/jpeg'
     try {
-      const saved = await Filesystem.downloadFile({ url, path, directory: Directory.Cache })
-      savedPath = saved.path || null
-      const read = await Filesystem.readFile(savedPath ? { path: savedPath } : { path, directory: Directory.Cache })
-      const blob = typeof read.data === 'string' ? base64Blob(read.data, type) : new Blob([read.data], { type })
+      if (MOBILE) {
+        // Native Capacitor download bypasses WebView CORS. The file only lives in Cache until
+        // normal OpenGym media ingest has copied and hashed it.
+        const path = `exercisedb-${Date.now()}-${Math.random().toString(36).slice(2)}.gif`
+        let savedPath = null
+        try {
+          const saved = await Filesystem.downloadFile({ url, path, directory: Directory.Cache })
+          savedPath = saved.path || null
+          const read = await Filesystem.readFile(savedPath ? { path: savedPath } : { path, directory: Directory.Cache })
+          const blob = typeof read.data === 'string' ? base64Blob(read.data, type) : new Blob([read.data], { type })
+          if (!blob.size) throw new Error('media-empty')
+          return blob
+        } finally {
+          try { await Filesystem.deleteFile(savedPath ? { path: savedPath } : { path, directory: Directory.Cache }) } catch { /* best effort */ }
+        }
+      }
+      const res = await fetch(url, { mode: 'cors' })
+      if (!res.ok) throw new Error('media-download')
+      const blob = await res.blob()
       if (!blob.size) throw new Error('media-empty')
       return blob
-    } finally {
-      try { await Filesystem.deleteFile(savedPath ? { path: savedPath } : { path, directory: Directory.Cache }) } catch { /* best effort cache cleanup */ }
-    }
+    } catch (e) { lastError = e }
   }
-  const res = await fetch(url, { mode: 'cors' })
-  if (!res.ok) throw new Error('media-download')
-  const blob = await res.blob()
-  if (!blob.size) throw new Error('media-empty')
-  return blob
+  throw lastError || new Error('media-download')
 }
 
 function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false }) {
