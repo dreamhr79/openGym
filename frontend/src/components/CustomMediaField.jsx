@@ -155,7 +155,7 @@ const SEARCH_EQUIV = {
 }
 const tokenMatches = (token, text) => (SEARCH_EQUIV[token] || [token]).some(word => text.includes(word))
 
-function imageSearchScore(item, query) {
+export function imageSearchScore(item, query) {
   const q = words(query)
   if (!q.length) return 0
   const name = String(item?.name || '').toLowerCase()
