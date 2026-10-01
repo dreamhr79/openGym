@@ -11,6 +11,7 @@ import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, dateLocale, instrFor, exerciseNameFor, exerciseNameClass, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
+import { requestDebrief } from './lib/coach-api.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
 import Media, { Thumb } from './components/Media.jsx'
 import CustomMediaField from './components/CustomMediaField.jsx'
@@ -2828,7 +2829,17 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    <Button variant="primary" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button>
+    {!!st.coach?.consent?.agreedAt && <Button variant="primary" icon="sparkles" onClick={async () => {
+      try {
+        await requestDebrief(w.id)
+        close()
+        nav('/coach')
+      } catch (e) {
+        useUI.getState().toast(e?.message || t('Could not start workout analysis'))
+      }
+    }}>{t('Analyze workout')}</Button>}
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button>
   </div>
 }
 export function finishWorkout() {
