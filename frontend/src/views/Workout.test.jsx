@@ -1941,12 +1941,16 @@ describe('the reference line: last time or best set', () => {
 
   it('reads last time in this routine by default, and the best set once switched', async () => {
     await mount([exercise('plain-bench', [false], { rid: 'A' })], 0, { workouts: history })
-    expect(line().textContent).toMatch(/^Last time \(.+\): 55×8$/)
+    expect(line().querySelector('.refline-head strong').textContent).toBe('Last time')
+    expect(line().querySelector('.refline-head time').textContent).toBeTruthy()
+    expect([...line().querySelectorAll('.refline-sets bdi')].map(x => x.textContent)).toEqual(['55×8'])
     await act(async () => { line().dispatchEvent(new dom.Event('click', { bubbles: true })) })
     expect(mocks.S.logRef).toBe('best')
     await rerender()
     // the heaviest set of the exercise from any routine, not just this one
-    expect(line().textContent).toMatch(/^Best set \(.+\): 80×5$/)
+    expect(line().querySelector('.refline-head strong').textContent).toBe('Best set')
+    expect(line().querySelector('.refline-head time').textContent).toBeTruthy()
+    expect([...line().querySelectorAll('.refline-sets bdi')].map(x => x.textContent)).toEqual(['80×5'])
     await act(async () => { line().dispatchEvent(new dom.Event('click', { bubbles: true })) })
     expect(mocks.S.logRef).toBe('last')
   })
@@ -1966,7 +1970,8 @@ describe('the reference line: last time or best set', () => {
     await act(async () => { line().dispatchEvent(new dom.Event('click', { bubbles: true })) })
     expect(mocks.S.logRef).toBe('last')
     await rerender()
-    expect(line().textContent).toMatch(/^Last time \(.+\): 0:30$/)
+    expect(line().querySelector('.refline-head strong').textContent).toBe('Last time')
+    expect([...line().querySelectorAll('.refline-sets bdi')].map(x => x.textContent)).toEqual(['0:30'])
   })
 
   // #284 review: a workout logged into the past is held against what came before its day, the
@@ -1975,10 +1980,12 @@ describe('the reference line: last time or best set', () => {
     const later = [...history, session('2026-08-28', 'A', 90, 3)]
     const past = { d: '2026-08-25', start: Date.parse('2026-08-25T18:00:00'), backfill: { durationMin: 60, replaceId: null } }
     await mount([exercise('plain-bench', [false], { rid: 'A' })], 0, { workouts: later, active: past })
-    expect(line().textContent).toMatch(/^Last time \(.+\): 60×10$/)
+    expect(line().querySelector('.refline-head strong').textContent).toBe('Last time')
+    expect([...line().querySelectorAll('.refline-sets bdi')].map(x => x.textContent)).toEqual(['60×10'])
     await act(async () => { line().dispatchEvent(new dom.Event('click', { bubbles: true })) })
     await rerender()
-    expect(line().textContent).toMatch(/^Best set \(.+\): 80×5$/)
+    expect(line().querySelector('.refline-head strong').textContent).toBe('Best set')
+    expect([...line().querySelectorAll('.refline-sets bdi')].map(x => x.textContent)).toEqual(['80×5'])
     expect(container.textContent).toContain('Best: 80 kg')
   })
 
@@ -1990,7 +1997,8 @@ describe('the reference line: last time or best set', () => {
     await mount([exercise('plain-bench', [false], { rid: 'A' })], 0, { workouts: two })
     const sets = [...line().querySelectorAll('bdi')]
     expect(sets.map(b => [b.getAttribute('dir'), b.textContent])).toEqual([['ltr', '60×8 (RIR 3)'], ['ltr', '60×8 (RIR 2)']])
-    expect(line().textContent).toMatch(/^Last time \(.+\): 60×8 \(RIR 3\), 60×8 \(RIR 2\)$/)
+    expect(line().querySelector('.refline-head strong').textContent).toBe('Last time')
+    expect([...line().querySelectorAll('.refline-sets bdi')].map(x => x.textContent)).toEqual(['60×8 (RIR 3)', '60×8 (RIR 2)'])
   })
 
   // A per-side set in Arabic carries its side words ("يسار 15×8 · يمين 15×7"). Forced left to
