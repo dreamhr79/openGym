@@ -198,6 +198,7 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
   const [page, setPage] = useState(0)
   const [searching, setSearching] = useState(false)
   const [using, setUsing] = useState(null)
+  const [diagnostic, setDiagnostic] = useState(null)
 
   useEffect(() => { if (!open) setQuery(exerciseName || '') }, [exerciseName, open])
 
@@ -211,6 +212,7 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
       // ranking signal, while the local catalogue remains the source of complete records/GIFs.
       // This avoids relying on one deployment's sometimes-broken `search` pagination.
       const suggestions = await exerciseDbAutocomplete(q).catch(() => [])
+      setDiagnostic({ query: q, suggestions: suggestions.slice(0, 12), catalog: rows.length })
       const suggested = new Map(suggestions.map((name, i) => [String(name).toLowerCase(), suggestions.length - i]))
       const found = rows.map(item => ({
         item,
@@ -274,6 +276,13 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
           {using === (item.exerciseId || item.gifUrl) && <span className="cmf-search-using">{t('Saving…')}</span>}
         </button>)}
       </div>}
+      {diagnostic && <details className="cmf-diagnostic">
+        <summary>{t('ExerciseDB response')}</summary>
+        <div className="small dim">{t('Query')}: <strong>{diagnostic.query}</strong> · {t('Catalog')}: {diagnostic.catalog}</div>
+        <div className="small">{diagnostic.suggestions.length
+          ? diagnostic.suggestions.map((name, i) => <div key={name + i}>{i + 1}. {name}</div>)
+          : <div className="dim">{t('Autocomplete returned no suggestions')}</div>}</div>
+      </details>}
       {pages > 1 && <div className="cmf-search-pages">
         <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>{t('Previous')}</Button>
         <span className="small dim">{page + 1} / {pages}</span>
