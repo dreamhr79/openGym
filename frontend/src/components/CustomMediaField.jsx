@@ -145,16 +145,11 @@ async function exerciseDbCatalog() {
 }
 
 const words = value => String(value || '').toLowerCase().trim().split(/[^a-z0-9]+/).filter(Boolean)
-const SEARCH_EQUIV = {
-  military: ['military', 'overhead', 'shoulder'],
-  overhead: ['overhead', 'military', 'shoulder'],
-  shoulder: ['shoulder', 'overhead', 'military'],
-  machine: ['machine', 'lever', 'smith'],
-  lever: ['lever', 'machine'],
-  press: ['press']
-}
-const tokenMatches = (token, text) => (SEARCH_EQUIV[token] || [token]).some(word => text.includes(word))
 
+// Catalogue filtering is deliberately literal and conjunctive. A query such as "smith shoulder"
+// means: keep every exercise whose searchable ExerciseDB metadata contains BOTH words. Ranking
+// may prefer words found in the exercise name, but it must never turn an AND filter into fuzzy
+// guesses (for example returning a calf exercise for a shoulder query).
 export function imageSearchScore(item, query) {
   const q = words(query)
   if (!q.length) return 0
@@ -166,30 +161,16 @@ export function imageSearchScore(item, query) {
     ...(item?.secondaryMuscles || []),
     ...(item?.bodyParts || [])
   ].join(' ').toLowerCase()
-  const matches = q.filter(w => tokenMatches(w, meta))
-  if (!matches.length) return 0
+  if (!q.every(word => meta.includes(word))) return 0
 
-  // Require a meaningful match, but never let a qualifier such as "machine" hide an otherwise
-  // excellent "shoulder press" result. Two-word queries normally need both concepts; longer
-  // queries need all but one.
-  const required = q.length <= 2 ? q.length : q.length - 1
-  if (matches.length < required) return 0
-
-  let score = matches.reduce((n, w) => n + (tokenMatches(w, name) ? 24 : 7), 0)
+  // All query words already match. This score only orders valid results; it never broadens them.
+  let score = 1
+  for (const word of q) score += name.includes(word) ? 20 : 4
   const phrase = q.join(' ')
   if (name === phrase) score += 120
   else if (name.startsWith(phrase)) score += 80
   else if (name.includes(phrase)) score += 60
-  score += matches.length * 12
-  score -= (q.length - matches.length) * 4
   return score
-}
-
-async function exerciseDbAutocomplete(query) {
-  const res = await fetch(`${EXERCISEDB_AUTOCOMPLETE}?search=${encodeURIComponent(query)}`)
-  if (!res.ok) return []
-  const json = await res.json()
-  return Array.isArray(json?.data) ? json.data.filter(Boolean) : []
 }
 
 const base64Blob = (data, type) => {
@@ -251,14 +232,9 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
     setSearching(true)
     try {
       const rows = await exerciseDbCatalog()
-      // Ask ExerciseDB's own fuzzy autocomplete first. The returned names are used as a strong
-      // ranking signal, while the local catalogue remains the source of complete records/GIFs.
-      // This avoids relying on one deployment's sometimes-broken `search` pagination.
-      const suggestions = await exerciseDbAutocomplete(q).catch(() => [])
-      const suggested = new Map(suggestions.map((name, i) => [String(name).toLowerCase(), suggestions.length - i]))
       const found = rows.map(item => ({
         item,
-        score: imageSearchScore(item, q) + (suggested.get(String(item?.name || '').toLowerCase()) || 0) * 100
+        score: imageSearchScore(item, q)
       }))
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score || String(a.item.name).localeCompare(String(b.item.name)))
