@@ -104,7 +104,7 @@ export function useMediaPicker() {
   return { pick, busy, warning, setWarning, note, storable, showAdd: !serverLacks, canAdd: !busy && storable && !serverLacks }
 }
 
-const EXERCISEDB_URL = 'https://exercisedb-api.vercel.app/api/v1/exercises'
+const EXERCISEDB_URL = 'https://oss.exercisedb.dev/api/v1/exercises'
 
 function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
   const [open, setOpen] = useState(false)
@@ -123,7 +123,7 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
       const res = await fetch(`${EXERCISEDB_URL}?search=${encodeURIComponent(q)}&limit=8`)
       if (!res.ok) throw new Error('search')
       const json = await res.json()
-      const rows = json?.data?.exercises || (Array.isArray(json?.data) ? json.data : [])
+      const rows = Array.isArray(json?.data) ? json.data : (json?.data?.exercises || [])
       setResults(rows.filter(x => x?.gifUrl).slice(0, 8))
       if (!rows.some(x => x?.gifUrl)) toast(t('No exercise images found'))
     } catch {
