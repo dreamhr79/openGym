@@ -207,14 +207,16 @@ async function downloadExerciseDbMedia(item) {
     // Native download bypasses WebView CORS. Keep the remote file only long enough to feed the
     // normal media ingest; the ingested, hashed copy is what OpenGym stores.
     const path = `exercisedb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    let savedPath = null
     try {
       const saved = await Filesystem.downloadFile({ url, path, directory: Directory.Cache })
-      const read = await Filesystem.readFile({ path: saved.path || path, directory: saved.path ? undefined : Directory.Cache })
+      savedPath = saved.path || null
+      const read = await Filesystem.readFile(savedPath ? { path: savedPath } : { path, directory: Directory.Cache })
       const blob = typeof read.data === 'string' ? base64Blob(read.data, type) : new Blob([read.data], { type })
       if (!blob.size) throw new Error('media-empty')
       return blob
     } finally {
-      try { await Filesystem.deleteFile({ path, directory: Directory.Cache }) } catch { /* best effort cache cleanup */ }
+      try { await Filesystem.deleteFile(savedPath ? { path: savedPath } : { path, directory: Directory.Cache }) } catch { /* best effort cache cleanup */ }
     }
   }
   const res = await fetch(url, { mode: 'cors' })
