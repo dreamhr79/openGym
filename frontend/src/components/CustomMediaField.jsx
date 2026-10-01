@@ -18,6 +18,7 @@ import { t } from '../lib/i18n.js'
 import { mediaOf, fmtClip } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
 import { MOBILE } from '../lib/mobile.js'
+import { Directory, Filesystem } from '@capacitor/filesystem'
 import { limitsFrom, fmtMB, MB } from '../lib/media-limits.js'
 import { CustomThumb } from './CustomMedia.jsx'
 import { Row, Button } from './ui.jsx'
@@ -191,6 +192,38 @@ async function exerciseDbAutocomplete(query) {
   return Array.isArray(json?.data) ? json.data.filter(Boolean) : []
 }
 
+const base64Blob = (data, type) => {
+  const raw = atob(data)
+  const bytes = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i)
+  return new Blob([bytes], { type })
+}
+
+async function downloadExerciseDbMedia(item) {
+  const url = String(item?.gifUrl || '')
+  if (!url) throw new Error('media-url')
+  const type = url.toLowerCase().includes('.gif') ? 'image/gif' : 'image/jpeg'
+  if (MOBILE) {
+    // Native download bypasses WebView CORS. Keep the remote file only long enough to feed the
+    // normal media ingest; the ingested, hashed copy is what OpenGym stores.
+    const path = `exercisedb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    try {
+      const saved = await Filesystem.downloadFile({ url, path, directory: Directory.Cache })
+      const read = await Filesystem.readFile({ path: saved.path || path, directory: saved.path ? undefined : Directory.Cache })
+      const blob = typeof read.data === 'string' ? base64Blob(read.data, type) : new Blob([read.data], { type })
+      if (!blob.size) throw new Error('media-empty')
+      return blob
+    } finally {
+      try { await Filesystem.deleteFile({ path, directory: Directory.Cache }) } catch { /* best effort cache cleanup */ }
+    }
+  }
+  const res = await fetch(url, { mode: 'cors' })
+  if (!res.ok) throw new Error('media-download')
+  const blob = await res.blob()
+  if (!blob.size) throw new Error('media-empty')
+  return blob
+}
+
 function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState(exerciseName || '')
@@ -198,7 +231,6 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
   const [page, setPage] = useState(0)
   const [searching, setSearching] = useState(false)
   const [using, setUsing] = useState(null)
-  const [diagnostic, setDiagnostic] = useState(null)
 
   useEffect(() => { if (!open) setQuery(exerciseName || '') }, [exerciseName, open])
 
@@ -212,7 +244,6 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
       // ranking signal, while the local catalogue remains the source of complete records/GIFs.
       // This avoids relying on one deployment's sometimes-broken `search` pagination.
       const suggestions = await exerciseDbAutocomplete(q).catch(() => [])
-      setDiagnostic({ query: q, suggestions: suggestions.slice(0, 12), catalog: rows.length })
       const suggested = new Map(suggestions.map((name, i) => [String(name).toLowerCase(), suggestions.length - i]))
       const found = rows.map(item => ({
         item,
@@ -232,16 +263,8 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
   const use = async item => {
     setUsing(item.exerciseId || item.gifUrl)
     try {
-      // ExerciseDB media is served from a CDN. Native Android WebViews can display it in an
-      // <img> while still refusing a JS fetch because of CORS. Try a normal fetch first, then a
-      // no-cors response; if bytes are opaque we cannot safely ingest them and report the real
-      // problem instead of pretending the exercise search failed.
-      let res
-      try { res = await fetch(item.gifUrl, { mode: 'cors' }) } catch { res = null }
-      if (!res?.ok) throw new Error('media-download')
-      const blob = await res.blob()
-      if (!blob?.size) throw new Error('media-empty')
-      const type = blob.type || (String(item.gifUrl).toLowerCase().includes('.gif') ? 'image/gif' : 'image/jpeg')
+      const blob = await downloadExerciseDbMedia(item)
+      const type = blob.type || 'image/gif'
       const ext = type.includes('gif') ? 'gif' : type.includes('webp') ? 'webp' : type.includes('png') ? 'png' : 'jpg'
       const file = new File([blob], `exercise-${item.exerciseId || Date.now()}.${ext}`, { type })
       const got = await pick(file)
@@ -276,13 +299,6 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
           {using === (item.exerciseId || item.gifUrl) && <span className="cmf-search-using">{t('Saving…')}</span>}
         </button>)}
       </div>}
-      {diagnostic && <details className="cmf-diagnostic">
-        <summary>{t('ExerciseDB response')}</summary>
-        <div className="small dim">{t('Query')}: <strong>{diagnostic.query}</strong> · {t('Catalog')}: {diagnostic.catalog}</div>
-        <div className="small">{diagnostic.suggestions.length
-          ? diagnostic.suggestions.map((name, i) => <div key={name + i}>{i + 1}. {name}</div>)
-          : <div className="dim">{t('Autocomplete returned no suggestions')}</div>}</div>
-      </details>}
       {pages > 1 && <div className="cmf-search-pages">
         <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>{t('Previous')}</Button>
         <span className="small dim">{page + 1} / {pages}</span>
