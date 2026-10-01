@@ -208,9 +208,9 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
     if (!q) { toast(t('Give the exercise a name first')); return }
     setSearching(true)
     try {
-      // Search ExerciseDB itself instead of downloading the whole catalogue. Follow the API's
-      // result pages because fuzzy matches that fail our literal AND check must not hide valid
-      // matches on later pages.
+      // ExerciseDB's search endpoint is the authority for relevance. Do not run a second strict
+      // local filter over its fuzzy results: valid matches can use dataset terminology such as
+      // "delts" rather than the exact word "shoulder" and were previously discarded here.
       const all = []
       let offset = 0
       const limit = 100
@@ -225,13 +225,7 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
       }
       const unique = new Map()
       for (const item of all) if (item?.gifUrl) unique.set(item.exerciseId || item.gifUrl, item)
-      const found = [...unique.values()].map(item => ({
-        item,
-        score: imageSearchScore(item, q)
-      }))
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score || String(a.item.name).localeCompare(String(b.item.name)))
-        .map(x => x.item)
+      const found = [...unique.values()]
       setResults(found)
       setPage(0)
       if (!found.length) toast(t('No exercise images found'))
