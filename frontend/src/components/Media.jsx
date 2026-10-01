@@ -10,6 +10,8 @@ import CustomMedia, { CustomThumb } from './CustomMedia.jsx'
 // name files of the shipped dataset (a stray img/gif on a custom exercise, written by a fork, is
 // ignored). The split is by component, not by branch, so each side keeps its own hooks in order.
 export default function Media(p) {
+  const override = useStore(s => p.ex?.id ? s.S.exerciseMedia?.[p.ex.id] : null)
+  if (override) return <CustomMedia {...p} ex={{ ...p.ex, custom: true, media: override }} />
   return p.ex?.custom ? <CustomMedia {...p} /> : <BuiltinMedia {...p} />
 }
 
@@ -63,6 +65,8 @@ function BuiltinMedia({ ex, id, compact, minimizable }) {
 // broken-image glyph in a list of them (#281). The failure is remembered per image, so a list
 // that re-renders does not ask again; a new exercise in the same slot tries its own.
 export function Thumb(p) {
+  const override = useStore(s => p.ex?.id ? s.S.exerciseMedia?.[p.ex.id] : null)
+  if (override) return <CustomThumb {...p} ex={{ ...p.ex, custom: true, media: override }} />
   return p.ex?.custom ? <CustomThumb {...p} /> : <BuiltinThumb {...p} />
 }
 function BuiltinThumb({ ex }) {
