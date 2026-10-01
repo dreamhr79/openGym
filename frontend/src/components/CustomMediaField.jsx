@@ -107,87 +107,48 @@ export function useMediaPicker() {
 
 const EXERCISEDB_URL = 'https://oss.exercisedb.dev/api/v1/exercises'
 const SEARCH_PAGE = 8
-const EXERCISEDB_CACHE_KEY = 'opengym.exercisedb.catalog.v1'
-const EXERCISEDB_CACHE_MS = 7 * 24 * 60 * 60 * 1000
-let exerciseDbCatalogPromise = null
-
-function cachedExerciseDbCatalog() {
-  try {
-    const raw = globalThis.localStorage?.getItem(EXERCISEDB_CACHE_KEY)
-    if (!raw) return null
-    const cached = JSON.parse(raw)
-    if (!Array.isArray(cached?.rows) || Date.now() - Number(cached.savedAt || 0) > EXERCISEDB_CACHE_MS) return null
-    return cached.rows
-  } catch { return null }
-}
-
-function saveExerciseDbCatalog(rows) {
-  try {
-    // One replaceable cache entry: refreshing the catalogue never appends another copy.
-    globalThis.localStorage?.setItem(EXERCISEDB_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), rows }))
-  } catch { /* Search still works in memory if persistent cache is unavailable/full. */ }
-}
-
-async function exerciseDbCatalog() {
-  const cached = cachedExerciseDbCatalog()
-  if (cached) return cached
-  if (exerciseDbCatalogPromise) return exerciseDbCatalogPromise
-  exerciseDbCatalogPromise = (async () => {
-    const all = []
-    const seenCursors = new Set()
-    let cursor = null
-    do {
-      const url = new URL(EXERCISEDB_URL)
-      url.searchParams.set('limit', '100')
-      // Production ExerciseDB V1 uses an `after` cursor. Its response exposes the value as
-      // meta.nextCursor; sending it back as `cursor` is ignored and repeats page one.
-      if (cursor) url.searchParams.set('after', cursor)
-      const res = await fetch(url.toString())
-      if (!res.ok) throw new Error('catalogue')
-      const json = await res.json()
-      const rows = Array.isArray(json?.data) ? json.data : []
-      all.push(...rows)
-      const next = json?.meta?.hasNextPage ? String(json?.meta?.nextCursor || '') : ''
-      if (!next || seenCursors.has(next)) break
-      seenCursors.add(next)
-      cursor = next
-    } while (cursor)
-    const unique = new Map()
-    for (const item of all) if (item?.exerciseId && item?.gifUrl) unique.set(item.exerciseId, item)
-    const rows = [...unique.values()]
-    saveExerciseDbCatalog(rows)
-    return rows
-  })().catch(e => { exerciseDbCatalogPromise = null; throw e })
-  return exerciseDbCatalogPromise
-}
 
 const words = value => String(value || '').toLowerCase().trim().split(/[^a-z0-9]+/).filter(Boolean)
 
-// Catalogue filtering is deliberately literal and conjunctive. A query such as "smith shoulder"
-// means: keep every exercise whose searchable ExerciseDB metadata contains BOTH words. Ranking
-// may prefer words found in the exercise name, but it must never turn an AND filter into fuzzy
-// guesses (for example returning a calf exercise for a shoulder query).
+// Rank only the rows returned by ExerciseDB's documented filters. This remains useful when a
+// broad name search returns several variants, but no longer requires downloading the catalogue.
 export function imageSearchScore(item, query) {
   const q = words(query)
   if (!q.length) return 0
   const name = String(item?.name || '').toLowerCase()
-  const meta = [
-    item?.name,
-    ...(item?.equipments || []),
-    ...(item?.targetMuscles || []),
-    ...(item?.secondaryMuscles || []),
-    ...(item?.bodyParts || [])
-  ].join(' ').toLowerCase()
-  if (!q.every(word => meta.includes(word))) return 0
-
-  // All query words already match. This score only orders valid results; it never broadens them.
+  const meta = [item?.name, ...(item?.equipments || []), ...(item?.targetMuscles || []), ...(item?.secondaryMuscles || []), ...(item?.bodyParts || [])].join(' ').toLowerCase()
   let score = 1
-  for (const word of q) score += name.includes(word) ? 20 : 4
+  for (const word of q) score += name.includes(word) ? 20 : meta.includes(word) ? 4 : 0
   const phrase = q.join(' ')
   if (name === phrase) score += 120
   else if (name.startsWith(phrase)) score += 80
   else if (name.includes(phrase)) score += 60
   return score
+}
+
+function exerciseDbFilter(query) {
+  const q = String(query || '').trim()
+  const lower = q.toLowerCase()
+  const url = new URL(EXERCISEDB_URL)
+  url.searchParams.set('limit', '25')
+  // Equipment is a first-class documented filter. Keep the remaining words as the fuzzy name
+  // filter so "shoulder smith" means shoulder exercises on a Smith machine.
+  if (/\bsmith(?:\s+machine)?\b/.test(lower)) {
+    url.searchParams.set('equipments', 'smith machine')
+    const name = q.replace(/\bsmith(?:\s+machine)?\b/ig, ' ').replace(/\s+/g, ' ').trim()
+    if (name) url.searchParams.set('name', name)
+  } else {
+    url.searchParams.set('name', q)
+  }
+  return url
+}
+
+async function searchExerciseDb(query) {
+  const url = exerciseDbFilter(query)
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error('exercise-search')
+  const json = await res.json()
+  return Array.isArray(json?.data) ? json.data : []
 }
 
 const base64Blob = (data, type) => {
@@ -248,12 +209,10 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
     if (!q) { toast(t('Give the exercise a name first')); return }
     setSearching(true)
     try {
-      // The production ExerciseDB search endpoint currently returns empty data for ordinary
-      // queries. Fetch its cursor-paginated catalogue instead, cache that one lightweight JSON
-      // catalogue for seven days, then search all real records locally. GIFs are never prefetched.
-      const catalogue = await exerciseDbCatalog()
-      const found = catalogue.map(item => ({ item, score: imageSearchScore(item, q) }))
-        .filter(x => x.score > 0)
+      // Use ExerciseDB V1's documented filters directly. One search is one API request; GIFs
+      // are still downloaded only after the user taps a result.
+      const rows = await searchExerciseDb(q)
+      const found = rows.map(item => ({ item, score: imageSearchScore(item, q) }))
         .sort((a, b) => b.score - a.score || String(a.item.name).localeCompare(String(b.item.name)))
         .map(x => x.item)
       setResults(found)
