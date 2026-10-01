@@ -15,6 +15,11 @@ describe('ExerciseDB image catalogue filtering', () => {
     expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'shoulder')).toBeGreaterThan(0)
   })
 
+  it('finds a literal Smith bench press', () => {
+    expect(imageSearchScore(ex('Smith bench press', ['smith machine'], ['pectorals'], ['chest']), 'smith bench press')).toBeGreaterThan(0)
+    expect(imageSearchScore(ex('Smith calf raise', ['smith machine'], ['calves'], ['lower legs']), 'smith bench press')).toBe(0)
+  })
+
   it('uses AND semantics for shoulder smith', () => {
     expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'shoulder smith')).toBeGreaterThan(0)
     expect(imageSearchScore(ex('Smith calf raise', ['smith machine'], ['calves'], ['lower legs']), 'shoulder smith')).toBe(0)
