@@ -80,6 +80,7 @@ const DEFAULTS = {
   models: {},                                        // { [provider]: model id }
   providerOptions: {},                               // { [provider]: { baseUrl } }
   boundUid: {},                                      // instance mode: { [provider]: the profile its credential bound to }
+  capsVersion: 2,                                      // v2 changed the per-profile default from 10 to unlimited
   caps: { perProfileDaily: 0, instanceDaily: 0 },   // 0 = unlimited
   daily: null,                                       // { date, count }: jobs enqueued today across every profile
   // Anonymous medians across profiles that opt in ("compare with others"). Off by default: it
@@ -137,6 +138,10 @@ export function load() {
   let stored = {};
   try { stored = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { /* absent = feature off */ }
   cache = { ...DEFAULTS, ...stored, caps: { ...DEFAULTS.caps, ...(stored.caps || {}) } };
+  // Existing installs inherited the old 10/day default. Move that untouched default to the
+  // new unlimited default once; an admin who saves a cap afterwards also persists capsVersion.
+  if (!stored.capsVersion && stored.caps?.perProfileDaily === 10) cache.caps.perProfileDaily = 0;
+  cache.capsVersion = DEFAULTS.capsVersion;
 
   // Until v1.2.11 this file held ONE credential, ONE model and ONE binding — for whichever
   // provider was selected at the time. Lift each onto that provider. One-way on purpose: a
