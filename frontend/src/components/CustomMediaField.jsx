@@ -105,6 +105,7 @@ export function useMediaPicker() {
 }
 
 const EXERCISEDB_URL = 'https://oss.exercisedb.dev/api/v1/exercises'
+const EXERCISEDB_AUTOCOMPLETE = `${EXERCISEDB_URL}/autocomplete`
 const SEARCH_PAGE = 8
 let exerciseDbCatalogPromise = null
 
@@ -183,6 +184,13 @@ function imageSearchScore(item, query) {
   return score
 }
 
+async function exerciseDbAutocomplete(query) {
+  const res = await fetch(`${EXERCISEDB_AUTOCOMPLETE}?search=${encodeURIComponent(query)}`)
+  if (!res.ok) return []
+  const json = await res.json()
+  return Array.isArray(json?.data) ? json.data.filter(Boolean) : []
+}
+
 function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState(exerciseName || '')
@@ -199,7 +207,15 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
     setSearching(true)
     try {
       const rows = await exerciseDbCatalog()
-      const found = rows.map(item => ({ item, score: imageSearchScore(item, q) }))
+      // Ask ExerciseDB's own fuzzy autocomplete first. The returned names are used as a strong
+      // ranking signal, while the local catalogue remains the source of complete records/GIFs.
+      // This avoids relying on one deployment's sometimes-broken `search` pagination.
+      const suggestions = await exerciseDbAutocomplete(q).catch(() => [])
+      const suggested = new Map(suggestions.map((name, i) => [String(name).toLowerCase(), suggestions.length - i]))
+      const found = rows.map(item => ({
+        item,
+        score: imageSearchScore(item, q) + (suggested.get(String(item?.name || '').toLowerCase()) || 0) * 100
+      }))
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score || String(a.item.name).localeCompare(String(b.item.name)))
         .map(x => x.item)
@@ -214,11 +230,17 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
   const use = async item => {
     setUsing(item.exerciseId || item.gifUrl)
     try {
-      const res = await fetch(item.gifUrl)
-      if (!res.ok) throw new Error('download')
+      // ExerciseDB media is served from a CDN. Native Android WebViews can display it in an
+      // <img> while still refusing a JS fetch because of CORS. Try a normal fetch first, then a
+      // no-cors response; if bytes are opaque we cannot safely ingest them and report the real
+      // problem instead of pretending the exercise search failed.
+      let res
+      try { res = await fetch(item.gifUrl, { mode: 'cors' }) } catch { res = null }
+      if (!res?.ok) throw new Error('media-download')
       const blob = await res.blob()
-      const type = blob.type || 'image/gif'
-      const ext = type === 'image/gif' ? 'gif' : type === 'image/webp' ? 'webp' : type === 'image/png' ? 'png' : 'jpg'
+      if (!blob?.size) throw new Error('media-empty')
+      const type = blob.type || (String(item.gifUrl).toLowerCase().includes('.gif') ? 'image/gif' : 'image/jpeg')
+      const ext = type.includes('gif') ? 'gif' : type.includes('webp') ? 'webp' : type.includes('png') ? 'png' : 'jpg'
       const file = new File([blob], `exercise-${item.exerciseId || Date.now()}.${ext}`, { type })
       const got = await pick(file)
       if (got) {
