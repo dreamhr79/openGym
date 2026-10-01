@@ -4,7 +4,7 @@ import { imageSearchScore } from './CustomMediaField.jsx'
 
 const ex = (name, equipments = [], targetMuscles = ['delts'], bodyParts = ['shoulders']) => ({ name, equipments, targetMuscles, secondaryMuscles: [], bodyParts })
 
-describe('ExerciseDB image catalogue filtering', () => {
+describe('ExerciseDB image ranking helper', () => {
   it('returns every Smith exercise for a smith query regardless of movement', () => {
     expect(imageSearchScore(ex('Smith shoulder press', ['smith machine']), 'smith')).toBeGreaterThan(0)
     expect(imageSearchScore(ex('Smith calf raise', ['smith machine'], ['calves'], ['lower legs']), 'smith')).toBeGreaterThan(0)
