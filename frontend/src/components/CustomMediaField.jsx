@@ -105,11 +105,52 @@ export function useMediaPicker() {
 }
 
 const EXERCISEDB_URL = 'https://oss.exercisedb.dev/api/v1/exercises'
+const SEARCH_PAGE = 8
+let exerciseDbCatalogPromise = null
 
-function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
+// The public ExerciseDB deployment currently accepts `search`, but some deployments return the
+// first page unchanged for every term. Load the lightweight catalogue once per app session and
+// rank it locally instead: the picture picker must never show the same unrelated eight exercises
+// for "shoulder press", "leg curl" and every other query.
+async function exerciseDbCatalog() {
+  if (exerciseDbCatalogPromise) return exerciseDbCatalogPromise
+  exerciseDbCatalogPromise = (async () => {
+    const firstRes = await fetch(`${EXERCISEDB_URL}?offset=0&limit=100`)
+    if (!firstRes.ok) throw new Error('catalogue')
+    const firstJson = await firstRes.json()
+    const data = firstJson?.data || {}
+    const first = Array.isArray(data) ? data : (data.exercises || [])
+    const pages = Math.max(1, Number(data.totalPages) || 1)
+    const rest = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, i) =>
+      fetch(`${EXERCISEDB_URL}?offset=${(i + 1) * 100}&limit=100`).then(async res => {
+        if (!res.ok) return []
+        const json = await res.json()
+        return Array.isArray(json?.data) ? json.data : (json?.data?.exercises || [])
+      }).catch(() => [])
+    ))
+    return [...first, ...rest.flat()].filter(x => x?.gifUrl)
+  })().catch(e => { exerciseDbCatalogPromise = null; throw e })
+  return exerciseDbCatalogPromise
+}
+
+const words = value => String(value || '').toLowerCase().trim().split(/[^a-z0-9]+/).filter(Boolean)
+function imageSearchScore(item, query) {
+  const q = words(query)
+  if (!q.length) return 0
+  const name = String(item?.name || '').toLowerCase()
+  const meta = [item?.name, ...(item?.equipments || []), ...(item?.targetMuscles || []), ...(item?.bodyParts || [])].join(' ').toLowerCase()
+  if (!q.every(w => meta.includes(w))) return 0
+  let score = q.reduce((n, w) => n + (name.includes(w) ? 20 : 5), 0)
+  if (name === q.join(' ')) score += 100
+  if (name.startsWith(q.join(' '))) score += 60
+  return score
+}
+
+function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState(exerciseName || '')
   const [results, setResults] = useState([])
+  const [page, setPage] = useState(0)
   const [searching, setSearching] = useState(false)
   const [using, setUsing] = useState(null)
 
@@ -120,12 +161,14 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
     if (!q) { toast(t('Give the exercise a name first')); return }
     setSearching(true)
     try {
-      const res = await fetch(`${EXERCISEDB_URL}?search=${encodeURIComponent(q)}&limit=8`)
-      if (!res.ok) throw new Error('search')
-      const json = await res.json()
-      const rows = Array.isArray(json?.data) ? json.data : (json?.data?.exercises || [])
-      setResults(rows.filter(x => x?.gifUrl).slice(0, 8))
-      if (!rows.some(x => x?.gifUrl)) toast(t('No exercise images found'))
+      const rows = await exerciseDbCatalog()
+      const found = rows.map(item => ({ item, score: imageSearchScore(item, q) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score || String(a.item.name).localeCompare(String(b.item.name)))
+        .map(x => x.item)
+      setResults(found)
+      setPage(0)
+      if (!found.length) toast(t('No exercise images found'))
     } catch {
       toast(t('Could not search exercise images right now'))
     } finally { setSearching(false) }
@@ -151,9 +194,12 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
     } finally { setUsing(null) }
   }
 
+  const shown = results.slice(page * SEARCH_PAGE, page * SEARCH_PAGE + SEARCH_PAGE)
+  const pages = Math.ceil(results.length / SEARCH_PAGE)
+
   return <div className="cmf-websearch">
     <Button variant="ghost" size="sm" icon="search" disabled={busy} onClick={() => setOpen(v => !v)}>
-      {t('Find image')}
+      {t(hasMedia ? 'Change image' : 'Find image')}
     </Button>
     {open && <div className="cmf-search-panel">
       <div className="row" style={{ gap: 8 }}>
@@ -161,13 +207,18 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse }) {
           placeholder={t('Search exercise images')} onKeyDown={e => { if (e.key === 'Enter') search() }} />
         <Button size="sm" variant="tinted" disabled={searching} onClick={search}>{searching ? t('Searching…') : t('Search')}</Button>
       </div>
-      {results.length > 0 && <div className="cmf-search-grid">
-        {results.map(item => <button type="button" className="cmf-search-result" key={item.exerciseId || item.gifUrl}
+      {shown.length > 0 && <div className="cmf-search-grid">
+        {shown.map(item => <button type="button" className="cmf-search-result" key={item.exerciseId || item.gifUrl}
           disabled={!!using} onClick={() => use(item)}>
           <img src={item.gifUrl} alt="" loading="lazy" />
           <span><strong>{item.name}</strong><small>{[...(item.equipments || []), ...(item.targetMuscles || [])].slice(0, 2).join(' · ')}</small></span>
           {using === (item.exerciseId || item.gifUrl) && <span className="cmf-search-using">{t('Saving…')}</span>}
         </button>)}
+      </div>}
+      {pages > 1 && <div className="cmf-search-pages">
+        <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>{t('Previous')}</Button>
+        <span className="small dim">{page + 1} / {pages}</span>
+        <Button size="sm" variant="ghost" disabled={page >= pages - 1} onClick={() => setPage(p => Math.min(pages - 1, p + 1))}>{t('Next')}</Button>
       </div>}
       <div className="small dim cmf-note">{t('Results from ExerciseDB. Tap an image to use it for this exercise.')}</div>
     </div>}
@@ -215,7 +266,7 @@ export default function CustomMediaField({ media, url, onChange, exerciseName = 
       </div>
     </Row>
     <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={onFile} />
-    {showAdd && <ExerciseImageSearch exerciseName={exerciseName} pick={pick} busy={busy}
+    {showAdd && <ExerciseImageSearch exerciseName={exerciseName} pick={pick} busy={busy} hasMedia={!!m}
       onUse={got => onChange({ media: got })} />}
     {warning && <div className="small dim cmf-note">{warning}</div>}
     {note && <div className="small dim cmf-note">{note}</div>}
