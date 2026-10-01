@@ -126,7 +126,7 @@ export function imageSearchScore(item, query) {
   return score
 }
 
-function exerciseDbFilter(query) {
+export function exerciseDbFilter(query) {
   const q = String(query || '').trim()
   const lower = q.toLowerCase()
   const url = new URL(EXERCISEDB_URL)
