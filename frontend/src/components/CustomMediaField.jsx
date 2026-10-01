@@ -106,19 +106,57 @@ export function useMediaPicker() {
 }
 
 const EXERCISEDB_URL = 'https://oss.exercisedb.dev/api/v1/exercises'
-const EXERCISEDB_SEARCH = `${EXERCISEDB_URL}/search`
 const SEARCH_PAGE = 8
+const EXERCISEDB_CACHE_KEY = 'opengym.exercisedb.catalog.v1'
+const EXERCISEDB_CACHE_MS = 7 * 24 * 60 * 60 * 1000
+let exerciseDbCatalogPromise = null
 
-async function exerciseDbSearch(query, offset = 0, limit = 100) {
-  const url = `${EXERCISEDB_SEARCH}?q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}&threshold=0.3`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('search')
-  const json = await res.json()
-  const rows = Array.isArray(json?.data) ? json.data : []
-  return {
-    rows,
-    metadata: json?.metadata || {}
-  }
+function cachedExerciseDbCatalog() {
+  try {
+    const raw = globalThis.localStorage?.getItem(EXERCISEDB_CACHE_KEY)
+    if (!raw) return null
+    const cached = JSON.parse(raw)
+    if (!Array.isArray(cached?.rows) || Date.now() - Number(cached.savedAt || 0) > EXERCISEDB_CACHE_MS) return null
+    return cached.rows
+  } catch { return null }
+}
+
+function saveExerciseDbCatalog(rows) {
+  try {
+    // One replaceable cache entry: refreshing the catalogue never appends another copy.
+    globalThis.localStorage?.setItem(EXERCISEDB_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), rows }))
+  } catch { /* Search still works in memory if persistent cache is unavailable/full. */ }
+}
+
+async function exerciseDbCatalog() {
+  const cached = cachedExerciseDbCatalog()
+  if (cached) return cached
+  if (exerciseDbCatalogPromise) return exerciseDbCatalogPromise
+  exerciseDbCatalogPromise = (async () => {
+    const all = []
+    const seenCursors = new Set()
+    let cursor = null
+    do {
+      const url = new URL(EXERCISEDB_URL)
+      url.searchParams.set('limit', '100')
+      if (cursor) url.searchParams.set('cursor', cursor)
+      const res = await fetch(url.toString())
+      if (!res.ok) throw new Error('catalogue')
+      const json = await res.json()
+      const rows = Array.isArray(json?.data) ? json.data : []
+      all.push(...rows)
+      const next = json?.meta?.hasNextPage ? String(json?.meta?.nextCursor || '') : ''
+      if (!next || seenCursors.has(next)) break
+      seenCursors.add(next)
+      cursor = next
+    } while (cursor)
+    const unique = new Map()
+    for (const item of all) if (item?.exerciseId && item?.gifUrl) unique.set(item.exerciseId, item)
+    const rows = [...unique.values()]
+    saveExerciseDbCatalog(rows)
+    return rows
+  })().catch(e => { exerciseDbCatalogPromise = null; throw e })
+  return exerciseDbCatalogPromise
 }
 
 const words = value => String(value || '').toLowerCase().trim().split(/[^a-z0-9]+/).filter(Boolean)
@@ -208,24 +246,14 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
     if (!q) { toast(t('Give the exercise a name first')); return }
     setSearching(true)
     try {
-      // ExerciseDB's search endpoint is the authority for relevance. Do not run a second strict
-      // local filter over its fuzzy results: valid matches can use dataset terminology such as
-      // "delts" rather than the exact word "shoulder" and were previously discarded here.
-      const all = []
-      let offset = 0
-      const limit = 100
-      let total = Infinity
-      while (offset < total && offset < 5000) {
-        const { rows, metadata } = await exerciseDbSearch(q, offset, limit)
-        all.push(...rows)
-        total = Number(metadata?.totalExercises)
-        if (!Number.isFinite(total)) total = rows.length < limit ? offset + rows.length : offset + limit + 1
-        if (!rows.length) break
-        offset += rows.length
-      }
-      const unique = new Map()
-      for (const item of all) if (item?.gifUrl) unique.set(item.exerciseId || item.gifUrl, item)
-      const found = [...unique.values()]
+      // The production ExerciseDB search endpoint currently returns empty data for ordinary
+      // queries. Fetch its cursor-paginated catalogue instead, cache that one lightweight JSON
+      // catalogue for seven days, then search all real records locally. GIFs are never prefetched.
+      const catalogue = await exerciseDbCatalog()
+      const found = catalogue.map(item => ({ item, score: imageSearchScore(item, q) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score || String(a.item.name).localeCompare(String(b.item.name)))
+        .map(x => x.item)
       setResults(found)
       setPage(0)
       if (!found.length) toast(t('No exercise images found'))
