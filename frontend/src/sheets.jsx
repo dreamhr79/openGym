@@ -801,6 +801,37 @@ function OneRM({ ex }) {
   </>
 }
 
+function ExerciseMediaEditor({ ex, close }) {
+  const stored = S().exerciseMedia?.[ex.id] || null
+  const [media, setMedia] = useState(() => ex.custom ? mediaOf(ex) : normalizeMediaRef(stored))
+  const save = () => {
+    const ref = normalizeMediaRef(media)
+    update(s => {
+      if (ex.custom) {
+        const target = (s.customEx || []).find(x => x.id === ex.id)
+        if (target) { if (ref) target.media = ref; else delete target.media }
+      } else {
+        s.exerciseMedia = s.exerciseMedia || {}
+        if (ref) s.exerciseMedia[ex.id] = ref
+        else delete s.exerciseMedia[ex.id]
+      }
+    })
+    if (ref) syncMedia({ force: true })
+    close()
+    toast(ref ? t('Exercise image saved') : t('Using default exercise image'))
+  }
+  return <>
+    <h3>{t('Change exercise image')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{exerciseNameFor(ex)}</div>
+    <CustomMediaField media={media} url="" exerciseName={exerciseNameFor(ex)}
+      onChange={patch => { if ('media' in patch) setMedia(patch.media) }} />
+    {!ex.custom && stored && <Button variant="ghost" icon="undo" onClick={() => setMedia(null)}>{t('Use default image')}</Button>}
+    <div style={{ height: 10 }} />
+    <Button variant="primary" icon="check" onClick={save}>{t('Save')}</Button>
+  </>
+}
+const exerciseMediaSheet = ex => ui().openSheet(close => <ExerciseMediaEditor ex={ex} close={close} />)
+
 function ExerciseDetail({ ex, close }) {
   const st = useStore(s => s.S)
   const last = lastEntryFor(st, ex.id)
@@ -841,6 +872,7 @@ function ExerciseDetail({ ex, close }) {
     <div className="ex-detail-actions">
       <Button variant="primary" icon="plus" onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
       {last && <Button icon="history" onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
+      <Button icon="image" onClick={() => exerciseMediaSheet(ex)}>{t('Change image')}</Button>
     </div>
     {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
