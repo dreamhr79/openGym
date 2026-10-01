@@ -106,42 +106,19 @@ export function useMediaPicker() {
 }
 
 const EXERCISEDB_URL = 'https://oss.exercisedb.dev/api/v1/exercises'
-const EXERCISEDB_AUTOCOMPLETE = `${EXERCISEDB_URL}/autocomplete`
+const EXERCISEDB_SEARCH = `${EXERCISEDB_URL}/search`
 const SEARCH_PAGE = 8
-let exerciseDbCatalogPromise = null
 
-// The public ExerciseDB deployment currently accepts `search`, but some deployments return the
-// first page unchanged for every term. Load the lightweight catalogue once per app session and
-// rank it locally instead: the picture picker must never show the same unrelated eight exercises
-// for "shoulder press", "leg curl" and every other query.
-async function exerciseDbCatalog() {
-  if (exerciseDbCatalogPromise) return exerciseDbCatalogPromise
-  exerciseDbCatalogPromise = (async () => {
-    const all = []
-    const seenUrls = new Set()
-    let url = `${EXERCISEDB_URL}?offset=0&limit=100`
-    // Follow the API's own nextPage link instead of guessing how many pages exist. This also
-    // survives deployments that omit totalPages while still returning the full paginated data.
-    while (url && !seenUrls.has(url) && seenUrls.size < 100) {
-      seenUrls.add(url)
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('catalogue')
-      const json = await res.json()
-      const data = json?.data || {}
-      const rows = Array.isArray(data) ? data : (data.exercises || [])
-      all.push(...rows)
-      if (Array.isArray(data)) break
-      url = data.nextPage || null
-      // Older compatible deployments expose totalPages but not nextPage.
-      if (!url && Number(data.currentPage) < Number(data.totalPages)) {
-        url = `${EXERCISEDB_URL}?offset=${Number(data.currentPage) * 100}&limit=100`
-      }
-    }
-    const unique = new Map()
-    for (const item of all) if (item?.gifUrl) unique.set(item.exerciseId || item.gifUrl, item)
-    return [...unique.values()]
-  })().catch(e => { exerciseDbCatalogPromise = null; throw e })
-  return exerciseDbCatalogPromise
+async function exerciseDbSearch(query, offset = 0, limit = 100) {
+  const url = `${EXERCISEDB_SEARCH}?q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}&threshold=0.3`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('search')
+  const json = await res.json()
+  const rows = Array.isArray(json?.data) ? json.data : []
+  return {
+    rows,
+    metadata: json?.metadata || {}
+  }
 }
 
 const words = value => String(value || '').toLowerCase().trim().split(/[^a-z0-9]+/).filter(Boolean)
@@ -231,8 +208,24 @@ function ExerciseImageSearch({ exerciseName, pick, busy, onUse, hasMedia = false
     if (!q) { toast(t('Give the exercise a name first')); return }
     setSearching(true)
     try {
-      const rows = await exerciseDbCatalog()
-      const found = rows.map(item => ({
+      // Search ExerciseDB itself instead of downloading the whole catalogue. Follow the API's
+      // result pages because fuzzy matches that fail our literal AND check must not hide valid
+      // matches on later pages.
+      const all = []
+      let offset = 0
+      const limit = 100
+      let total = Infinity
+      while (offset < total && offset < 5000) {
+        const { rows, metadata } = await exerciseDbSearch(q, offset, limit)
+        all.push(...rows)
+        total = Number(metadata?.totalExercises)
+        if (!Number.isFinite(total)) total = rows.length < limit ? offset + rows.length : offset + limit + 1
+        if (!rows.length) break
+        offset += rows.length
+      }
+      const unique = new Map()
+      for (const item of all) if (item?.gifUrl) unique.set(item.exerciseId || item.gifUrl, item)
+      const found = [...unique.values()].map(item => ({
         item,
         score: imageSearchScore(item, q)
       }))
