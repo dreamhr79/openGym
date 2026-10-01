@@ -139,7 +139,9 @@ async function exerciseDbCatalog() {
     do {
       const url = new URL(EXERCISEDB_URL)
       url.searchParams.set('limit', '100')
-      if (cursor) url.searchParams.set('cursor', cursor)
+      // Production ExerciseDB V1 uses an `after` cursor. Its response exposes the value as
+      // meta.nextCursor; sending it back as `cursor` is ignored and repeats page one.
+      if (cursor) url.searchParams.set('after', cursor)
       const res = await fetch(url.toString())
       if (!res.ok) throw new Error('catalogue')
       const json = await res.json()
