@@ -418,7 +418,7 @@ describe('Workout set completion flow', () => {
     expect(mocks.startRest).toHaveBeenCalledWith(90, 0)
   })
 
-  it('leaves a rest that is still counting down alone on a re-check', async () => {
+  it('restarts the full rest when a completed set is unchecked and re-checked', async () => {
     await mount([exercise('current', [true, false, false])])
     mocks.timer = { left: 40, total: 90, endsAt: Date.now() + 40000, forIdx: 0 }
 
@@ -426,7 +426,7 @@ describe('Workout set completion flow', () => {
     await rerender()
     await toggleSet(0)
 
-    expect(mocks.startRest).not.toHaveBeenCalled()
+    expect(mocks.startRest).toHaveBeenCalledWith(90, 0)
   })
 
   it('leaves a completed superset selected without opening a top-weight sheet', async () => {
