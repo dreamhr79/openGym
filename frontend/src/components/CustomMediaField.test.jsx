@@ -25,7 +25,7 @@ describe('ExerciseDB documented filter builder', () => {
     expect(p.get('equipments')).toBe('smith machine')
   })
 
-  it('also accepts the phrase smith machine without leaking it into name', () => {
+  it('accepts the phrase smith machine without leaking it into name', () => {
     const p = params('smith machine bench press')
     expect(p.get('name')).toBe('bench press')
     expect(p.get('equipments')).toBe('smith machine')
@@ -33,9 +33,9 @@ describe('ExerciseDB documented filter builder', () => {
 })
 
 describe('ExerciseDB result ranking helper', () => {
-  it('prefers an exact exercise name', () => {
+  it('prefers an exact exercise name over a longer prefix match', () => {
     expect(imageSearchScore(ex('military press', ['barbell']), 'military press'))
-      .toBeGreaterThan(imageSearchScore(ex('seated military press', ['barbell']), 'military press'))
+      .toBeGreaterThan(imageSearchScore(ex('military press machine', ['machine']), 'military press'))
   })
 
   it('can rank equipment metadata returned by the API', () => {
